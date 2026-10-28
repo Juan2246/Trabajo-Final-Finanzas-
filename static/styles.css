@@ -10,3 +10,29 @@
 @media print{body{background:white;font-size:11px}.sidebar,.topbar,.page-head,.section-tools,.footer,.toasts,dialog,.no-print{display:none!important}.workspace{margin:0;width:100%}.main{padding:0;max-width:none}.panel{border:0;box-shadow:none;border-radius:0}.statement{padding:0}th,td{padding:9px!important}.badge{background:none!important;color:#111!important}.statement-brand{break-after:avoid}.table-wrap{overflow:visible}tr{break-inside:avoid}button{display:none!important}.statement-meta{grid-template-columns:repeat(3,1fr)}}
 
 .panel,.workspace,.main,.two-columns>*{min-width:0}
+
+/* Las tablas se desplazan dentro de su tarjeta, sin ensanchar el panel. */
+.dashboard-grid > *, .two-columns > *, .activity-row > div { min-width: 0; }
+@media (max-width: 1000px) {
+  .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .two-columns { grid-template-columns: minmax(0, 1fr); }
+}
+
+.activity-row strong, .store-card h3, .user-box strong { overflow-wrap: anywhere; }
+.top-actions { min-width: 0; }
+.top-actions > span.store-select { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 420px) {
+  .top-actions .store-select { max-width: 130px; }
+  .page-head { flex-wrap: wrap; }
+  .page-head > .filter-row { width: 100%; }
+  .page-head > .filter-row .btn { flex: 1; }
+  .hero-copy, .page-head > div { min-width: 0; }
+}
+
+@media (max-width: 420px) {
+  .top-actions .store-select { max-width: 110px; }
+  .breadcrumbs { min-width: 0; }
+  .breadcrumbs strong { max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}

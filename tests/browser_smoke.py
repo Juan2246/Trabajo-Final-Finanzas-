@@ -177,6 +177,33 @@ def platform_and_customer(browser, url):
     admin_context.close()
 
 
+
+def check_mobile_layout(page, label, preview=False):
+    import json
+    page.wait_for_timeout(200)
+    page.screenshot(path=str(ARTIFACTS / (label + ".png")), full_page=True)
+    if preview:
+        print("UI_MOBILE_PREVIEW:" + base64.b64encode(page.screenshot(type="jpeg", quality=40)).decode(), flush=True)
+    overflow = page.evaluate("document.documentElement.scrollWidth > innerWidth + 2")
+    if overflow:
+        details = page.evaluate("""() => [...document.querySelectorAll('body *')]
+            .map(el => ({tag:el.tagName, id:el.id, class:el.className?.baseVal ?? el.className,
+                         right:Math.round(el.getBoundingClientRect().right),
+                         width:Math.round(el.getBoundingClientRect().width),
+                         scroll:el.scrollWidth, display:getComputedStyle(el).display}))
+            .filter(el => el.right > innerWidth + 2 && el.width > 0)
+            .slice(0, 60)""")
+        print("MOBILE_OVERFLOW:" + label + ":" + json.dumps(details, ensure_ascii=False), flush=True)
+    assert not overflow, "Desborde horizontal en " + label
+
+
+def mobile_page(page, section):
+    menu = page.locator('[data-action="toggle-menu"]')
+    if menu.is_visible():
+        menu.click()
+    page.locator('[data-page="' + section + '"]').first.click()
+
+
 def main():
     with tempfile.TemporaryDirectory() as temp:
         # El sistema elige un puerto disponible para no chocar con otra prueba.
@@ -236,14 +263,15 @@ def main():
                         platform_and_customer(browser, url)
                         page.locator('[data-page="dashboard"]').first.click()
                         page.set_viewport_size({"width": 390, "height": 844})
-                        page.wait_for_timeout(200)
-                        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 2"), "Desborde horizontal en celular."
-                        page.screenshot(path=str(ARTIFACTS / "03-resumen-celular.png"), full_page=True)
-                        menu = page.locator('[data-action="toggle-menu"]')
-                        if menu.is_visible():
-                            menu.click()
-                            page.locator('[data-page="customers"]').first.click()
-                            page.screenshot(path=str(ARTIFACTS / "04-clientes-celular.png"), full_page=True)
+                        check_mobile_layout(page, "03-resumen-celular", preview=True)
+                        for section in ("customers", "products", "sales", "payments", "statements"):
+                            mobile_page(page, section)
+                            check_mobile_layout(page, "celular-390-" + section)
+                        page.set_viewport_size({"width": 320, "height": 760})
+                        mobile_page(page, "dashboard")
+                        check_mobile_layout(page, "celular-320-resumen")
+                        mobile_page(page, "products")
+                        check_mobile_layout(page, "celular-320-productos")
                         assert not errors, "\n".join(errors)
                     except Exception:
                         page.screenshot(path=str(ARTIFACTS / "error.png"), full_page=True)
