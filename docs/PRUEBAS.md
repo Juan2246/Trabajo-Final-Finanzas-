@@ -43,7 +43,7 @@ python -m unittest discover -s tests -v
 Para el recorrido visual:
 
 ```sh
-python -m pip install playwright==1.51.1
+python -m pip install playwright==1.64.1
 python -m playwright install chromium
 python tests/browser_smoke.py
 ```

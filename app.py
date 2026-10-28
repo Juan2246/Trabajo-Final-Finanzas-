@@ -261,6 +261,11 @@ def sale_plan(db, store_id, data):
 
 def save_sale(db, store_id, data, user):
     plan, customer = sale_plan(db, store_id, data)
+    expected = data.get("expected_plan")
+    if expected is not None:
+        keys = ("amount", "currency", "financed", "grace_days", "grace_interest", "dues")
+        if not isinstance(expected, dict) or expected != {k: plan[k] for k in keys}:
+            raise Problem("El acuerdo cambió desde la simulación. Vuelve a calcular y revisar las cuotas.", 409)
     values = {k: plan[k] for k in ("customer_id", "purchased_at", "mode", "months", "amount",
                                    "financed", "grace_days", "grace_interest", "currency", "cycle")}
     # Guardamos las condiciones de esta compra para no recalcularla con otra tasa.
@@ -296,6 +301,7 @@ def due_rows(db, store_id, customer_id=None, as_of=None):
                                        effective_date, json.loads(row.pop("terms_json")))
         if paid_date and paid_date > as_of:
             row["payment_id"] = None
+            row["paid_at"] = None
         row.update(late_amount=str(interest), late_days=days, total=str(money(number(row["amount"]) + interest)))
         rows.append(row)
     return rows
@@ -519,6 +525,7 @@ class Application:
                     raise Problem("No existe un cierre guardado para ese período.", 404)
                 result = json.loads(closed["snapshot"])
                 result["is_closed"] = True
+                result["cycle"] = cycle
             else:
                 result = snapshot_statement(db,store_id,customer_id,when)
                 result["is_closed"] = False
