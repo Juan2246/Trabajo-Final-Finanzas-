@@ -49,3 +49,11 @@ python tests/browser_smoke.py
 ```
 
 GitHub Actions ejecuta las comprobaciones en una máquina limpia. Las capturas de escritorio y celular se guardan en `test-results/` como artefacto de la ejecución. El resultado válido es el de la ejecución correspondiente al commit revisado, no el de una versión anterior.
+
+## Recorrido de la interfaz
+
+El recorrido comprueba los filtros de cuotas (todos, vencidos y próximos), el cambio de moneda y la consulta de cobro desde el resumen con el cliente ya seleccionado. También verifica el control para mostrar la contraseña y el cierre del menú móvil con Escape; el menú oculto queda fuera de la navegación por teclado.
+
+Se crean y editan clientes y productos, se registra una venta y su pago completo, y se exporta el estado de cuenta a CSV y PDF. Las vistas se revisan con anchos de 1440, 390 y 320 píxeles. Las tablas generales permiten desplazamiento interno; los pendientes del resumen se reorganizan en filas con su acción visible en celular.
+
+Las conexiones de prueba usan el mismo administrador de contexto que la aplicación para cerrar la base al salir del bloque. Esto permite eliminar las bases temporales también en Windows.

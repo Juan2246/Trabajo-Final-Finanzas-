@@ -16,6 +16,8 @@ venv/
 htmlcov/
 test-results/
 playwright-report/
+output/playwright/
+.playwright-cli/
 *.log
 .DS_Store
 Thumbs.db

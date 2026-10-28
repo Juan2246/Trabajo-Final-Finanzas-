@@ -22,6 +22,7 @@ flowchart LR
 | `static/index.html` | Estructura de la interfaz. |
 | `static/app.js` | Navegación, formularios y consultas al servidor. |
 | `static/styles.css` | Apariencia, adaptación a celulares e impresión. |
+| `static/fonts/` | Public Sans y su licencia SIL Open Font License. Se sirve desde la propia aplicación. |
 | `tests/` | Pruebas del motor financiero y de las operaciones del servidor. |
 
 No se necesita un proceso de compilación para el frontend. La lógica de negocio y los cálculos definitivos se ejecutan en el servidor.

@@ -2,7 +2,6 @@
 import io
 import json
 import re
-import sqlite3
 import tempfile
 import unittest
 from datetime import datetime, timedelta
@@ -10,7 +9,7 @@ from decimal import Decimal
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from app import create_app, create_user
+from app import connect, create_app, create_user
 
 PASSWORD = "PruebaSegura2026!"
 TODAY = lambda: datetime.now(ZoneInfo("America/Lima")).date()
@@ -80,7 +79,7 @@ class AppTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.db_path = self.tmp.name + "/test.db"
         self.app = create_app(self.db_path, testing=True)
-        with sqlite3.connect(self.db_path) as db:
+        with connect(self.db_path) as db:
             create_user(db, "admin", "Administrador", PASSWORD, "platform")
         self.admin = Client(self.app)
         self.assertEqual(self.admin.login("admin")[0], 200)
@@ -129,7 +128,7 @@ class AppTests(unittest.TestCase):
         return payload
 
     def rows(self, table):
-        with sqlite3.connect(self.db_path) as db:
+        with connect(self.db_path) as db:
             return db.execute("SELECT COUNT(*) FROM " + table).fetchone()[0]
 
     def test_authentication_and_logout(self):
@@ -235,17 +234,17 @@ class AppTests(unittest.TestCase):
         self.assertIn(status, (200, 201), plan)
         self.assertEqual(len(plan["dues"]), 3)
         self.assertEqual(sum(Decimal(row["principal"]) for row in plan["dues"]), Decimal(plan["financed"]))
-        with sqlite3.connect(self.db_path) as db:
+        with connect(self.db_path) as db:
             original = db.execute("SELECT terms_json FROM sales").fetchone()[0]
         self.merchant.request("PATCH", "/api/customers/" + str(self.customer_id), {"active": False})
-        with sqlite3.connect(self.db_path) as db:
+        with connect(self.db_path) as db:
             self.assertEqual(db.execute("SELECT terms_json FROM sales").fetchone()[0], original)
         self.assertIn(self.merchant.request("POST", "/api/sales", self.sale())[0], (400, 403, 409, 422))
 
     def test_only_full_payment_of_due_balance_is_accepted(self):
         status, sale = self.merchant.request("POST", "/api/sales", self.sale())
         self.assertIn(status, (200, 201), sale)
-        with sqlite3.connect(self.db_path) as db:
+        with connect(self.db_path) as db:
             db.execute("UPDATE dues SET due_date=?", ((TODAY() - timedelta(days=5)).isoformat(),))
         status, quote = self.merchant.request("POST", "/api/payments/preview", {"customer_id": self.customer_id})
         self.assertEqual(status, 200, quote)
@@ -284,7 +283,7 @@ class AppTests(unittest.TestCase):
         status, data = self.merchant.request("GET", "/api/data")
         self.assertEqual(status, 200)
         self.assertNotIn(PASSWORD, json.dumps(data))
-        with sqlite3.connect(self.db_path) as db:
+        with connect(self.db_path) as db:
             passwords = [row[0] for row in db.execute("SELECT password FROM users")]
         self.assertTrue(passwords)
         self.assertTrue(all(value != PASSWORD and len(value) > 40 for value in passwords))

@@ -142,6 +142,30 @@ def business_flows(page, context, url):
     page.screenshot(path=str(ARTIFACTS / "07-pago-registrado.png"), full_page=True)
 
 
+def dashboard_flows(page, context, url):
+    data = api_data(context, url)
+    pending = [d for d in data["dues"] if not d["payment_id"] and d["currency"] == "PEN"]
+    due = [d for d in pending if d["due_date"] <= data["today"]]
+    page.locator('[data-filter="due"]').click()
+    expect(page.locator('.collection-table tbody tr')).to_have_count(min(8, len(due)))
+    expect(page.locator('[data-filter="due"]')).to_have_attribute("aria-pressed", "true")
+    page.locator('[data-filter="upcoming"]').click()
+    expect(page.locator('.collection-table tbody tr')).to_have_count(min(8, len(pending) - len(due)))
+    page.locator('#metric-currency').select_option('USD')
+    expect(page.locator('.collection-table tbody tr')).to_have_count(0)
+    expect(page.locator('.main-metric strong')).to_contain_text('0.00')
+    page.locator('#metric-currency').select_option('PEN')
+    page.locator('[data-filter="due"]').click()
+    customer_id = page.locator('[data-action="collect-customer"]').first.get_attribute('data-id')
+    quote = mutate_with_ui(page, '/api/payments/preview',
+        lambda: page.locator('[data-action="collect-customer"]').first.click())
+    expect(page.locator('#payment-form [name=customer_id]')).to_have_value(customer_id)
+    assert quote['dues'] and float(quote['amount']) > 0
+    expect(page.locator('#payment-preview .payment-total')).to_be_visible()
+    page.locator('[data-page="dashboard"]').first.click()
+    page.locator('[data-filter="all"]').click()
+
+
 def platform_and_customer(browser, url):
     customer_context = browser.new_context(viewport={"width": 1280, "height": 900}, locale="es-PE")
     customer_page = customer_context.new_page()
@@ -243,6 +267,10 @@ def main():
                         page.screenshot(path=str(ARTIFACTS / "01-acceso.png"), full_page=True)
                         page.locator("#login-form input[name=username]").fill("tienda")
                         page.locator("#login-form input[name=password]").fill("PruebaSegura2026!")
+                        page.locator('[data-action="toggle-password"]').click()
+                        expect(page.locator('#login-password')).to_have_attribute('type', 'text')
+                        page.locator('[data-action="toggle-password"]').click()
+                        expect(page.locator('#login-password')).to_have_attribute('type', 'password')
                         question = page.locator("#challenge-question").inner_text()
                         answer = sum(int(x) for x in re.findall(r"\d+", question))
                         page.locator("#login-form input[name=answer]").fill(str(answer))
@@ -252,6 +280,8 @@ def main():
                         print("UI_PREVIEW:" + base64.b64encode(page.screenshot(type="jpeg", quality=35)).decode(), flush=True)
                         assert "Cuenta" in page.title(), page.title()
                         assert page.locator("#page-title").inner_text().strip()
+
+                        dashboard_flows(page, context, url)
 
                         for section in ("customers", "products", "sales", "payments", "statements", "audit", "settings"):
                             page.locator('[data-page="' + section + '"]').first.click()
@@ -266,6 +296,11 @@ def main():
                         page.locator('[data-page="dashboard"]').first.click()
                         page.set_viewport_size({"width": 390, "height": 844})
                         check_mobile_layout(page, "03-resumen-celular", preview=True)
+                        expect(page.locator('.sidebar')).to_have_attribute('inert', '')
+                        page.locator('[data-action="toggle-menu"]').click()
+                        expect(page.locator('button[data-action="toggle-menu"]')).to_have_attribute('aria-expanded', 'true')
+                        page.keyboard.press('Escape')
+                        expect(page.locator('.sidebar')).to_have_attribute('inert', '')
                         for section in ("customers", "products", "sales", "payments", "statements"):
                             mobile_page(page, section)
                             check_mobile_layout(page, "celular-390-" + section)

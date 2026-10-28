@@ -398,7 +398,8 @@ class Application:
                 if method != "GET":
                     raise Problem("Método no permitido.", 405)
                 names = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
-                         "/styles.css": ("styles.css", "text/css"), "/favicon.svg": ("favicon.svg", "image/svg+xml")}
+                         "/styles.css": ("styles.css", "text/css"), "/favicon.svg": ("favicon.svg", "image/svg+xml"),
+                         "/fonts/public-sans.ttf": ("fonts/public-sans.ttf", "font/ttf")}
                 if path not in names:
                     raise Problem("La página no existe.", 404)
                 name, mime = names[path]

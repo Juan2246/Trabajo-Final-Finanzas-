@@ -1,11 +1,11 @@
 """Casos en paralelo para que un crédito no se gaste ni se cobre dos veces."""
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
-import sqlite3
 import threading
 import unittest
 
 import test_app
+from app import connect
 
 
 class ConcurrencyTests(unittest.TestCase):
@@ -56,7 +56,7 @@ class ConcurrencyTests(unittest.TestCase):
         status, payload = self.merchant.request("POST", "/api/sales", self.sale())
         self.assertEqual(status, 200, payload)
         # La deuda vence hoy para que el caso no dependa del día en que corre CI.
-        with sqlite3.connect(self.db_path) as db:
+        with connect(self.db_path) as db:
             db.execute("UPDATE dues SET due_date=?", (test_app.TODAY().isoformat(),))
         status, quote = self.merchant.request(
             "POST", "/api/payments/preview", {"customer_id": self.customer_id}
@@ -69,7 +69,7 @@ class ConcurrencyTests(unittest.TestCase):
         self.assertEqual(sorted(status for status, _ in responses), [200, 400], responses)
         self.assertEqual(self.rows("payments"), 1)
         self.assertEqual(self.rows("payment_lines"), 1)
-        with sqlite3.connect(self.db_path) as db:
+        with connect(self.db_path) as db:
             paid, total = db.execute(
                 "SELECT COUNT(payment_id), COUNT(*) FROM dues"
             ).fetchone()
@@ -81,7 +81,7 @@ class ConcurrencyTests(unittest.TestCase):
         self.assertEqual(status, 200, payload)
         status, _ = self.merchant.request("POST", "/api/sales", self.sale())
         self.assertEqual(status, 400)
-        with sqlite3.connect(self.db_path) as db:
+        with connect(self.db_path) as db:
             db.execute("UPDATE dues SET due_date=?", (test_app.TODAY().isoformat(),))
         status, quote = self.merchant.request(
             "POST", "/api/payments/preview", {"customer_id": self.customer_id}
