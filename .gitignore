@@ -1,0 +1,23 @@
+# Archivos locales y datos del negocio
+.env
+.env.*
+!.env.example
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite*
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

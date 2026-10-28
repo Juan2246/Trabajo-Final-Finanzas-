@@ -1,0 +1,75 @@
+name: Verificar aplicación
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instalar zonas horarias
+        run: python -m pip install -r requirements.txt
+      - name: Revisar sintaxis
+        run: |
+          python -m compileall -q app.py finance.py tests
+          node --check static/app.js
+      - name: Probar cálculos y API
+        run: python -m unittest discover -s tests -v
+      - name: Instalar navegador para pruebas
+        run: |
+          python -m pip install playwright==1.51.1
+          python -m playwright install --with-deps chromium
+      - name: Probar interfaz en escritorio y celular
+        run: python tests/browser_smoke.py
+      - name: Guardar capturas y registro de la prueba
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pruebas-interfaz
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  contenedor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir contenedor
+        run: docker build -t cuenta-clara:test .
+      - name: Comprobar arranque y persistencia
+        run: |
+          docker run -d --name cuenta-clara-ci -p 8000:8000 -v cuenta-clara-test:/data -e ADMIN_PASSWORD=PruebaSegura2026 cuenta-clara:test
+          python - <<'PY'
+          import json, time, urllib.request
+          for attempt in range(40):
+              try:
+                  with urllib.request.urlopen("http://127.0.0.1:8000/api/health", timeout=2) as response:
+                      assert json.load(response)["ok"] is True
+                      break
+              except Exception:
+                  time.sleep(1)
+          else:
+              raise SystemExit("El contenedor no respondió.")
+          PY
+          docker exec cuenta-clara-ci python -c "import sqlite3; db=sqlite3.connect('/data/cuenta.db'); assert db.execute('select count(*) from users').fetchone()[0] == 1"
+          docker restart cuenta-clara-ci
+          sleep 3
+          docker exec cuenta-clara-ci python -c "import sqlite3; db=sqlite3.connect('/data/cuenta.db'); assert db.execute('select count(*) from users').fetchone()[0] == 1"
+      - name: Mostrar registro del contenedor
+        if: always()
+        run: docker logs cuenta-clara-ci
