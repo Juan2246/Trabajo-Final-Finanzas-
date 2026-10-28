@@ -10,7 +10,7 @@ import tempfile
 import time
 import urllib.request
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "test-results"
@@ -262,7 +262,7 @@ def main():
                         business_flows(page, context, url)
                         assert page.locator(".toast").count() <= 2, "Se acumularon las notificaciones."
                         platform_and_customer(browser, url)
-                        page.wait_for_function("document.querySelectorAll('.toast').length === 0")
+                        expect(page.locator(".toast")).to_have_count(0, timeout=10000)
                         page.locator('[data-page="dashboard"]').first.click()
                         page.set_viewport_size({"width": 390, "height": 844})
                         check_mobile_layout(page, "03-resumen-celular", preview=True)
