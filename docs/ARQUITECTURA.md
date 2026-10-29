@@ -71,7 +71,7 @@ Antes de usar datos reales, el negocio debe definir sus propios plazos de conser
 
 ## Fechas y dinero
 
-Las fechas de corte y pago admiten días del 1 al 28 para tener vencimientos existentes en todos los meses. La base financiera es comercial de 30 días por mes. Cada crédito conserva su moneda: no se convierten soles a dólares ni se mezclan sus totales. El documento [FINANZAS.md](FINANZAS.md) explica las fórmulas y supuestos.
+Las fechas de corte y pago admiten días del 1 al 31. En meses cortos se ajustan al último día disponible; después se recupera el día pactado. La base financiera es comercial de 30 días por mes. Cada crédito conserva su moneda: no se convierten soles a dólares ni se mezclan sus totales. El documento [FINANZAS.md](FINANZAS.md) explica las fórmulas y supuestos.
 
 ## Desarrollo y cambios
 

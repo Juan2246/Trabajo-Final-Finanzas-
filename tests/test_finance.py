@@ -108,9 +108,25 @@ class CalendarTests(unittest.TestCase):
         self.assertEqual(month_date(date(2028, 1, 31), 1, 31), date(2028, 2, 29))
 
     def test_invalid_schedule(self):
-        for cutoff, hour, payment in [(29, 18, 26), (20, 24, 26), (20, 18, 31), (0, 18, 26)]:
+        for cutoff, hour, payment in [(32, 18, 26), (20, 24, 26), (20, 18, 32), (0, 18, 26)]:
             with self.subTest(cutoff=cutoff, hour=hour, payment=payment), self.assertRaises(ValueError):
                 due_anchor(datetime(2026, 9, 15), cutoff, hour, payment)
+
+    def test_cutoff_31_in_february_and_leap_year(self):
+        for year, last in ((2026, 28), (2028, 29)):
+            with self.subTest(year=year):
+                self.assertEqual(due_anchor(datetime(year, 2, last, 18), 31, 18, 31),
+                                 (date(year, 2, last), date(year, 2, last)))
+                self.assertEqual(due_anchor(datetime(year, 2, last, 18, 0, 1), 31, 18, 31),
+                                 (date(year, 3, 31), date(year, 3, 31)))
+
+    def test_day_30_recovers_after_february(self):
+        plan = make_plan("300", datetime(2026, 1, 20), terms(rate="0", pay_day=30), "installments", 3)
+        self.assertEqual([d["date"] for d in plan["dues"]], ["2026-02-28", "2026-03-30", "2026-04-30"])
+
+    def test_day_31_at_year_boundary(self):
+        self.assertEqual(due_anchor(datetime(2026, 12, 31, 23, 1), 31, 23, 31),
+                         (date(2027, 1, 31), date(2027, 1, 31)))
 
 
 class PaymentPlanTests(unittest.TestCase):
@@ -123,6 +139,20 @@ class PaymentPlanTests(unittest.TestCase):
         self.assertEqual(Decimal(plan["grace_interest"]), expected_financed - 1000)
         self.assertEqual([d["date"] for d in plan["dues"]], ["2026-10-26", "2026-11-26", "2026-12-26"])
         self.assertEqual(sum(Decimal(d["principal"]) for d in plan["dues"]), expected_financed)
+        self.assertEqual(plan["financed"], "1003.66")
+        self.assertEqual([d["amount"] for d in plan["dues"]], ["341.27", "341.27", "341.26"])
+
+    def test_documented_effective_purchase_with_nominal_mora(self):
+        agreement = terms(rate="24", rate_kind="effective")
+        plan = make_plan("500", datetime(2026, 9, 21, 12), agreement, "end", 1)
+        due = plan["dues"][0]
+        self.assertEqual(plan["cycle"], "2026-10-20")
+        self.assertEqual(due["date"], "2026-10-26")
+        self.assertEqual(due["interest"], "10.57")
+        self.assertEqual(due["amount"], "510.57")
+        mora, days = late_interest(due["amount"], date(2026, 10, 26), date(2026, 11, 5), agreement)
+        self.assertEqual((mora, days), (Decimal("3.04"), 9))
+        self.assertEqual(Decimal(due["amount"]) + mora, Decimal("513.61"))
 
     def test_known_french_installments_and_last_cent(self):
         plan = make_plan("1000", datetime(2026, 1, 26, 12),

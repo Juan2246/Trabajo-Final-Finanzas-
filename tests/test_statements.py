@@ -5,6 +5,7 @@ import unittest
 from datetime import datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
+from unittest.mock import patch
 
 import test_app
 from app import close_statements, connect
@@ -144,6 +145,36 @@ class StatementTests(unittest.TestCase):
         fresh = Client(self.app)
         self.assertEqual(fresh.login("tienda", PASSWORD)[0], 401)
         self.assertEqual(fresh.login("tienda", replacement)[0], 200)
+
+    def test_late_breakdown_uses_original_agreement(self):
+        self.old_sale()
+        status, before = self.statement()
+        self.assertEqual(status, 200)
+        row = before["dues"][0]
+        self.assertGreater(row["late_days"], 0)
+        self.assertEqual(row["late_base"], row["amount"])
+        self.assertEqual(row["late_rate"], "36")
+        self.assertEqual(row["late_kind"], "effective")
+        self.assertEqual(row["late_period"], 360)
+        self.assertGreater(row["interest_days"], 0)
+        status, _ = self.merchant.request("PATCH", "/api/customers/" + str(self.customer_id), {"late_rate": "99"})
+        self.assertEqual(status, 200)
+        _, after = self.statement()
+        self.assertEqual(after["dues"][0]["late_rate"], "36")
+        self.assertEqual(after["dues"][0]["late_amount"], row["late_amount"])
+
+    def test_month_end_cutoffs_keep_day_31_after_short_month(self):
+        self.merchant.request("PATCH", "/api/customers/" + str(self.customer_id),
+                              {"cutoff_day": 31, "pay_day": 31})
+        with patch("app.now", return_value=datetime(2026, 3, 31, 23, 30)):
+            status, sale = self.merchant.request("POST", "/api/sales",
+                self.sale(purchased_at="2026-01-20T12:00", mode="installments", months=3))
+            self.assertEqual(status, 200, sale)
+            self.assertEqual([d["date"] for d in sale["dues"]], ["2026-02-28", "2026-03-31", "2026-04-30"])
+            self.close()
+            with connect(self.db_path) as db:
+                cycles = [r[0] for r in db.execute("SELECT cycle FROM statements ORDER BY cycle")]
+            self.assertEqual(cycles, ["2026-01-31", "2026-02-28", "2026-03-31"])
 
 
 if __name__ == "__main__":

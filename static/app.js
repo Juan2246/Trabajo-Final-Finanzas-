@@ -16,46 +16,8 @@ const state = {
   filter: "all",
   busy: false,
 };
-const paths = {
-  grid: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
-  users:
-    "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
-  box: "m21 8-9 5-9-5 M12 22V13 M3 8l9-5 9 5v10l-9 5-9-5z M7 5l9 5",
-  bag: "M6 7h12l2 14H4L6 7z M9 8V6a3 3 0 0 1 6 0v2",
-  wallet:
-    "M21 8V5H4a2 2 0 0 0 0 4h17v12H4a2 2 0 0 1-2-2V7 M21 13h-5v4h5 M17 15h.01",
-  file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h5",
-  store:
-    "M3 10h18l-2-7H5l-2 7z M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0 M4 13v8h16v-8 M9 21v-6h6v6",
-  clock: "M12 8v4l3 2 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
-  settings:
-    "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M9 3l-1 3-3 1-2 3 2 3 1 3 3 1 1 4h4l1-4 3-1 1-3 2-3-2-3-3-1-1-3z",
-  help: "M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4 M12 17h.01 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
-  plus: "M12 5v14 M5 12h14",
-  arrow: "M5 12h14 M13 6l6 6-6 6",
-  down: "M12 3v12 M7 10l5 5 5-5 M5 17v4h14v-4",
-  search: "M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0",
-  logout: "M9 4H4v16h5 M9 12h12 M16 7l5 5-5 5",
-  check: "M20 6 9 17l-5-5",
-  shield: "m12 3 8 3v6c0 5-8 10-8 10S4 17 4 12V6z M8 12l3 3 5-6",
-  trend: "M3 17l6-6 4 4 8-10 M15 5h6v6",
-  menu: "M3 6h18 M3 12h18 M3 18h18",
-  close: "M6 6l12 12 M18 6 6 18",
-  edit: "m16 3 5 5-12 12-6 1 1-6z M14 5l5 5",
-  printer: "M6 9V3h12v6 M6 18H3V9h18v9h-3 M6 14h12v7H6z M17 11h.01",
-  refresh: "M20 7V3l-4 4 M4 17v4l4-4 M20 7a9 9 0 0 0-16 3 M4 17a9 9 0 0 0 16-3",
-  lock: "M5 10h14v11H5z M8 10V6a4 4 0 0 1 8 0v4",
-  chevron: "m9 5 7 7-7 7",
-  info: "M12 8h.01 M12 11v6 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
-  trash: "M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7",
-  coin: "M12 2v20 M17 5H9a4 4 0 0 0 0 8h6a3 3 0 0 1 0 6H6",
-};
 const icon = (name, cls = "") =>
-  '<svg class="icon ' +
-  cls +
-  '" viewBox="0 0 24 24" aria-hidden="true"><path d="' +
-  (paths[name] || paths.file) +
-  '"/></svg>';
+  `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${iconShapes[name] || iconShapes.file}</svg>`;
 const esc = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,
@@ -186,7 +148,7 @@ function pageHead(title, description, action = "") {
   return `<header class="page-head"><div><h1 id="page-title">${esc(title)}</h1><p>${esc(description)}</p></div>${action}</header>`;
 }
 function brand() {
-  return `<div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 7h17v20H8a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4h14v3M8 7v20M13 13h7M13 18h7"/></svg></span><span>cuenta clara<span class="brand-caption">Créditos de tu negocio</span></span></div>`;
+  return `<div class="brand" translate="no"><span class="brand-mark" aria-hidden="true">${icon("logo")}</span><span class="brand-wordmark">cuenta<span>clara</span><small>El crédito de tu negocio</small></span></div>`;
 }
 const navItems = [
   ["dashboard", "Resumen", "grid"],
@@ -225,7 +187,7 @@ function renderShell() {
   const store = state.data.store;
   const switcher =
     state.user.role === "platform"
-      ? `<label class="screen-reader" for="store-switch">Tienda activa</label><select id="store-switch" class="store-select"><option value="">Selecciona una tienda</option>${state.data.stores.map((s) => `<option value="${s.id}" ${String(s.id) === String(state.storeId) ? "selected" : ""}>${esc(s.name)}${live(s) ? "" : " (inactiva)"}</option>`).join("")}</select>`
+      ? `<label class="screen-reader" for="store-switch">Tienda activa</label><select id="store-switch" class="store-select" title="Elige el negocio cuyos datos vas a administrar."><option value="">Selecciona una tienda</option>${state.data.stores.map((s) => `<option value="${s.id}" ${String(s.id) === String(state.storeId) ? "selected" : ""}>${esc(s.name)}${live(s) ? "" : " (inactiva)"}</option>`).join("")}</select>`
       : `<strong>${esc(store?.name || "Mi cuenta")}</strong><small>${esc(store?.business || "Consulta de crédito")}</small>`;
   $("#app").innerHTML = `<div class="app-shell">
     <aside class="sidebar" id="navigation" aria-label="Navegación principal">
@@ -283,7 +245,13 @@ function renderPage() {
     settings: settingsPage,
   };
   el.innerHTML = (pages[state.page] || dashboard)();
-  if (state.page === "sales") renderCart();
+  if (state.page === "sales") {
+    renderCart();
+    $("#sale-form [name=months]")?.toggleAttribute(
+      "disabled",
+      $("#sale-form [name=mode]")?.value === "end",
+    );
+  }
   if (state.page === "statements" && state.statement) renderStatement();
   if (state.page === "payments" && state.payment) renderPayment();
 }
@@ -360,7 +328,7 @@ function dashboard() {
     <section id="dashboard">
       ${noStore()}
       <div class="overview">
-        <div class="overview-heading"><h2>${own ? "Tu crédito" : "Estado de la cartera"}</h2><label class="currency-picker" for="metric-currency">Moneda<select id="metric-currency"><option value="PEN" ${currency === "PEN" ? "selected" : ""}>Soles (PEN)</option><option value="USD" ${currency === "USD" ? "selected" : ""}>Dólares (USD)</option></select></label></div>
+        <div class="overview-heading"><h2>${own ? "Tu crédito" : "Estado de la cartera"}</h2><label class="currency-picker" for="metric-currency">Moneda<select id="metric-currency" title="Muestra los saldos de una moneda; no convierte importes."><option value="PEN" ${currency === "PEN" ? "selected" : ""}>Soles (PEN)</option><option value="USD" ${currency === "USD" ? "selected" : ""}>Dólares (USD)</option></select></label></div>
         <div class="metrics">
           <div class="metric main-metric"><span>${own ? "Total pendiente" : "Por cobrar"}</span><strong>${esc(amt(sum(pending), currency))}</strong><small>${pending.length} cuotas pendientes</small></div>
           <div class="metric"><span>Vencido y por pagar hoy</span><strong class="${due.length ? "bad" : ""}">${esc(amt(sum(due), currency))}</strong><small>${count} ${count === 1 ? "cliente" : "clientes"} con pagos exigibles</small></div>
@@ -448,6 +416,37 @@ function recentActivity() {
         .join("")
     : empty("Sin movimientos", "Tus ventas y pagos aparecerán aquí.", "", true);
 }
+
+function rateLabel(terms, late = false) {
+  const rate = terms[late ? "late_rate" : "rate"];
+  if (rate === undefined) return "Ver acuerdo original";
+  const kind = terms[late ? "late_kind" : "rate_kind"];
+  const period = Number(terms[late ? "late_period" : "rate_period"]);
+  const frequency = Number(terms[late ? "late_frequency" : "frequency"]);
+  const cadence = {
+    1: "anual",
+    2: "semestral",
+    4: "trimestral",
+    6: "bimestral",
+    12: "mensual",
+    24: "quincenal",
+    360: "diaria",
+  };
+  return `${rate}% ${kind === "effective" ? "efectiva" : "nominal"} ${period === 360 ? "anual" : "mensual"}${kind === "nominal" ? ", capitalización " + (period === 30 ? "mensual" : cadence[frequency]) : ""}`;
+}
+function agreedTerms(row) {
+  return row.late_rate !== undefined
+    ? row
+    : (state.statement?.sales || state.data?.sales || []).find(
+        (s) => Number(s.id) === Number(row.sale_id),
+      )?.terms || {};
+}
+function lateBreakdown(rows) {
+  const late = rows.filter((d) => Number(d.late_days) > 0);
+  if (!late.length) return "";
+  return `<section class="late-breakdown"><h3>Intereses por mora</h3><p class="muted">Desglose del cargo ya incluido en cada cuota. Se aplica sobre la obligación vencida completa.</p>${late.map((d) => `<article class="late-entry"><header><strong>Venta #${esc(d.sale_id)} · Cuota ${esc(d.number)}</strong><span class="money">${esc(amt(d.late_amount, d.currency))}</span></header><dl><div><dt>Base vencida</dt><dd>${esc(amt(d.late_base ?? d.amount, d.currency))}</dd></div><div><dt>Vencimiento</dt><dd>${esc(fmtDate(d.due_date))}</dd></div><div><dt>Calculado hasta</dt><dd>${esc(fmtDate(d.late_as_of || d.paid_at || state.statement?.date || today()))}</dd></div><div><dt>Días de mora (30/360)</dt><dd>${esc(d.late_days)} días</dd></div><div class="late-rate"><dt>Tasa pactada en esta compra</dt><dd>${esc(rateLabel(agreedTerms(d), true))}</dd></div></dl></article>`).join("")}</section>`;
+}
+
 function duesTable(rows, short = false, asOf = today()) {
   if (!rows.length)
     return empty(
@@ -496,6 +495,11 @@ function duesTable(rows, short = false, asOf = today()) {
               esc(amt(d.principal, d.currency)) +
               "</td><td>" +
               esc(amt(d.interest, d.currency)) +
+              '<small class="interest-detail">' +
+              esc(d.interest_days ?? (d.number > 1 ? 30 : "—")) +
+              ' días</small><small class="interest-detail">' +
+              esc(rateLabel(agreedTerms(d))) +
+              "</small>" +
               "</td><td>" +
               esc(amt(d.late_amount, d.currency)) +
               "</td>"
@@ -517,7 +521,7 @@ function searchTools(placeholder, filters = true) {
   return (
     '<div class="section-tools"><div class="search-box">' +
     icon("search") +
-    '<input id="search" type="search" placeholder="' +
+    '<input id="search" type="search" title="Escribe parte del nombre, documento, correo, descripción o marca para filtrar." placeholder="' +
     esc(placeholder) +
     '" aria-label="' +
     esc(placeholder) +
@@ -525,7 +529,7 @@ function searchTools(placeholder, filters = true) {
     esc(state.search) +
     '"></div><div class="filter-row">' +
     (filters
-      ? '<label class="screen-reader" for="status-filter">Estado</label><select id="status-filter"><option value="all">Todos los estados</option><option value="active" ' +
+      ? '<label class="screen-reader" for="status-filter">Estado</label><select id="status-filter" title="Filtra los registros activos o desactivados."><option value="all">Todos los estados</option><option value="active" ' +
         (state.filter === "active" ? "selected" : "") +
         '>Activos</option><option value="inactive" ' +
         (state.filter === "inactive" ? "selected" : "") +
@@ -627,7 +631,7 @@ function productsPage() {
       btn("Nuevo producto", "new-product"),
     ) +
     searchTools("Buscar producto, servicio o marca") +
-    `<section class="panel">${rows.length ? `<div class="table-wrap"><table class="catalog-table"><thead><tr><th>Producto o servicio</th><th>Al contado</th><th>Al crédito</th><th>Forma de pago</th><th>Estado</th><th class="text-right">Acciones</th></tr></thead><tbody>${rows.map((p) => `<tr><td><div class="catalog-product"><span class="product-thumb">${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : icon(p.unit === "servicio" ? "store" : "box")}</span><div><strong>${esc(p.name)}</strong><small>${esc([p.brand, p.unit].filter(Boolean).join(" · "))}</small></div></div></td><td class="money">${esc(amt(p.cash_price, p.currency))}</td><td class="money">${esc(amt(p.credit_price, p.currency))}</td><td>${Number(p.installment_allowed) ? "Al cierre o en cuotas" : "Pago al cierre"}</td><td>${badge(live(p) ? "Activo" : "Inactivo", live(p) ? "" : "neutral")}</td><td><div class="inline-actions"><button class="icon-button" data-action="edit-product" data-id="${p.id}" title="Editar producto" aria-label="Editar ${esc(p.name)}">${icon("edit")}</button><button class="text-button" data-action="toggle-product" data-id="${p.id}">${live(p) ? "Desactivar" : "Activar"}</button></div></td></tr>`).join("")}</tbody></table></div><div class="panel-bottom"><span>${rows.length} productos y servicios</span><span>Precios en su moneda original</span></div>` : empty(state.search ? "Sin coincidencias" : "Agrega tu primer producto", state.search ? "Prueba con otro nombre o marca." : "Registra el precio al contado y al crédito para empezar a vender.", state.search ? "" : btn("Agregar producto", "new-product"))}</section>`
+    `<section class="panel">${rows.length ? `<div class="table-wrap"><table class="catalog-table"><thead><tr><th>Producto o servicio</th><th>Al contado</th><th>Al crédito</th><th>Forma de pago</th><th>Estado</th><th class="text-right">Acciones</th></tr></thead><tbody>${rows.map((p) => `<tr><td><div class="catalog-product"><span class="product-thumb">${p.image ? `<img src="${esc(p.image)}" alt="" width="44" height="44" loading="lazy" referrerpolicy="no-referrer">` : icon(p.unit === "servicio" ? "store" : "box")}</span><div><strong>${esc(p.name)}</strong><small>${esc([p.brand, p.unit].filter(Boolean).join(" · "))}</small></div></div></td><td class="money">${esc(amt(p.cash_price, p.currency))}</td><td class="money">${esc(amt(p.credit_price, p.currency))}</td><td>${Number(p.installment_allowed) ? "Al cierre o en cuotas" : "Pago al cierre"}</td><td>${badge(live(p) ? "Activo" : "Inactivo", live(p) ? "" : "neutral")}</td><td><div class="inline-actions"><button class="icon-button" data-action="edit-product" data-id="${p.id}" title="Editar producto" aria-label="Editar ${esc(p.name)}">${icon("edit")}</button><button class="text-button" data-action="toggle-product" data-id="${p.id}">${live(p) ? "Desactivar" : "Activar"}</button></div></td></tr>`).join("")}</tbody></table></div><div class="panel-bottom"><span>${rows.length} productos y servicios</span><span>Precios en su moneda original</span></div>` : empty(state.search ? "Sin coincidencias" : "Agrega tu primer producto", state.search ? "Prueba con otro nombre o marca." : "Registra el precio al contado y al crédito para empezar a vender.", state.search ? "" : btn("Agregar producto", "new-product"))}</section>`
   );
 }
 function salesPage() {
@@ -782,7 +786,7 @@ function renderCart() {
               "</option>",
           )
           .join("") +
-        '</select></div><div class="field"><label for="cart-qty-' +
+        '</select><small>Precio de lista en la moneda del cliente.</small></div><div class="field"><label for="cart-qty-' +
         index +
         '">Cantidad</label><input id="cart-qty-' +
         index +
@@ -790,7 +794,7 @@ function renderCart() {
         index +
         '" type="number" min="0.001" max="10000" step="0.001" value="' +
         esc(row.quantity) +
-        '" required></div><button type="button" class="icon-button" data-action="remove-item" data-index="' +
+        '" required title="Cantidad de unidades; admite hasta tres decimales."><small>Hasta 3 decimales.</small></div><button type="button" class="icon-button" data-action="remove-item" data-index="' +
         index +
         '" aria-label="Quitar producto ' +
         (index + 1) +
@@ -947,6 +951,7 @@ function renderPayment() {
       esc(amt(p.late_amount, p.currency)) +
       "</strong></div>" +
       duesTable(p.dues) +
+      lateBreakdown(p.dues) +
       '<div class="notice warn">' +
       icon("info") +
       "<span>Confirma el pago solo después de recibir el dinero. La operación queda registrada en movimientos.</span></div>" +
@@ -1007,7 +1012,7 @@ function renderClosures() {
   wrap.className = "field";
   wrap.style.marginTop = "18px";
   wrap.innerHTML =
-    '<label for="closure-select">Consultar un cierre guardado</label><select id="closure-select"><option value="">Estado actual / fecha de consulta</option>' +
+    '<label for="closure-select">Consultar un cierre guardado</label><select id="closure-select" title="Un cierre conserva el detalle original del corte; el estado actual incluye la mora de la fecha consultada."><option value="">Estado actual / fecha de consulta</option>' +
     closures
       .map(
         (x) =>
@@ -1033,7 +1038,9 @@ function renderStatement() {
   $("#statement-output").innerHTML =
     '<article class="statement"><header class="statement-brand"><div><h2>Estado de cuenta</h2><p class="muted" style="font-size:11px">' +
     esc(s.store?.name || state.data.store?.name) +
-    '</p></div><div class="brand"><span class="brand-mark">c<span>c</span></span>cuenta clara</div></header><div class="statement-meta"><div><small>Cliente</small><strong>' +
+    "</p></div>" +
+    brand() +
+    '</header><div class="statement-meta"><div><small>Cliente</small><strong>' +
     esc(c.name) +
     '</strong><p style="font-size:11px">' +
     esc(c.document) +
@@ -1065,6 +1072,7 @@ function renderStatement() {
       : "") +
     '<h3 style="margin-bottom:15px">Detalle completo del crédito</h3>' +
     duesTable(s.dues, false, s.date) +
+    lateBreakdown(s.dues) +
     '<div class="statement-totals">' +
     ["PEN", "USD"]
       .filter((cur) => s.dues.some((d) => d.currency === cur))
@@ -1285,6 +1293,76 @@ function settingsPage() {
   );
 }
 
+const fieldGuidance = {
+  name: "Nombre con el que identificarás este registro. Hasta 120 caracteres.",
+  document:
+    "DNI, carné de extranjería u otro documento. Debe ser único dentro de la tienda.",
+  email:
+    "Correo del cliente, por ejemplo nombre@correo.com. Se utiliza como dato de contacto.",
+  phone:
+    "Teléfono de contacto. Incluye el código de país si corresponde. Es opcional.",
+  currency:
+    "Elige soles o dólares. Las ventas, límites y pagos mantienen esta moneda; no se realizan conversiones.",
+  credit_limit:
+    "Capital máximo que el cliente puede mantener pendiente, incluida la gracia capitalizada.",
+  max_months:
+    "Máximo de cuotas mensuales que se ofrecerá al cliente. Entre 1 y 60.",
+  cutoff_day:
+    "Día del mes del 1 al 31. Si el mes no tiene ese día, el corte será el último día de ese mes.",
+  cutoff_hour:
+    "Hora de corte en Lima, entre 0 y 23. Por ejemplo, 18 significa 18:00. Una compra posterior pasa al siguiente corte.",
+  pay_day:
+    "Día mensual del 1 al 31. En meses cortos se usa su último día y se recupera el día pactado el mes siguiente.",
+  rate: "Porcentaje compensatorio del período elegido. Para una tasa del 24 %, escribe 24.",
+  rate_kind:
+    "Efectiva: incorpora la capitalización del período. Nominal: requiere la frecuencia de capitalización indicada.",
+  rate_period:
+    "Anual corresponde a 360 días y mensual a 30 días para los cálculos comerciales.",
+  frequency:
+    "Veces que capitaliza la tasa nominal anual. Una nominal mensual siempre capitaliza mensualmente.",
+  late_rate:
+    "Porcentaje por atraso, aplicado a la obligación vencida completa. Puede ser cero si no se cobra mora.",
+  late_kind: "Indica si la tasa moratoria pactada es nominal o efectiva.",
+  late_period:
+    "Período al que corresponde el porcentaje de mora: mes de 30 días o año de 360 días.",
+  late_frequency:
+    "Capitalizaciones de la nominal anual de mora. No modifica una tasa efectiva ni una nominal mensual.",
+  username:
+    "Acceso único en la plataforma. Usa letras, números, punto, guion, guion bajo o @.",
+  password:
+    "Mínimo 12 caracteres, con mayúscula, minúscula y número. No compartas esta clave.",
+  current_password: "Escribe tu contraseña vigente para autorizar el cambio.",
+  description:
+    "Detalles que permiten identificar el producto o servicio. Es opcional, hasta 500 caracteres.",
+  brand:
+    "Marca comercial, si corresponde. Puedes dejarla vacía en servicios o productos sin marca.",
+  supplier: "Proveedor del producto o servicio. Es un dato opcional.",
+  unit: "Unidad de venta: kg, unidad, litro, hora o servicio. La cantidad de la compra utiliza esta unidad.",
+  cash_price:
+    "Precio al contado en la moneda seleccionada, con hasta dos decimales.",
+  credit_price:
+    "Precio de lista que se utiliza al registrar una venta a crédito; sobre él se calculan los intereses pactados.",
+  image:
+    "Enlace HTTPS a una imagen que tengas permiso de usar. Si lo dejas vacío se muestra un icono del catálogo.",
+  business:
+    "Rubro del negocio, por ejemplo bodega, panadería, peluquería o bazar.",
+  address:
+    "Dirección del establecimiento para identificarlo en los estados de cuenta. Es opcional.",
+  admin_name:
+    "Nombre del responsable que administrará esta tienda y sus operaciones.",
+  customer_id:
+    "Selecciona al cliente. Se aplicarán su moneda, crédito disponible, tasas y fechas acordadas.",
+  purchased_at:
+    "Fecha y hora de la compra en Lima. Determina el corte; no admite fechas futuras ni períodos ya cerrados.",
+  mode: "Pago al cierre: una obligación en la fecha pactada. En cuotas: método francés con gracia inicial capitalizada.",
+  months:
+    "Cuotas mensuales del crédito, hasta el máximo autorizado al cliente. Solo aplica al pago en cuotas.",
+  date: "Fecha del estado de cuenta. No admite fechas futuras. Los cierres guardados conservan los datos de su emisión.",
+};
+function fieldLabel(name, label, id, description) {
+  return `<div class="field-label"><label for="${id}">${esc(label)}</label><details class="field-help"><summary aria-label="Ayuda: ${esc(label)}" title="Ayuda sobre ${esc(label)}">${icon("help")}</summary><p id="${id}-help">${esc(description)}</p></details></div>`;
+}
+
 function inputField(
   name,
   label,
@@ -1295,35 +1373,22 @@ function inputField(
   attrs = "",
 ) {
   const id = "field-" + name;
-  return (
-    '<div class="field ' +
-    (full ? "full" : "") +
-    '"><label for="' +
-    id +
-    '">' +
-    esc(label) +
-    '</label><input id="' +
-    id +
-    '" name="' +
-    name +
-    '" type="' +
-    type +
-    '" value="' +
-    esc(value) +
-    '" ' +
-    attrs +
-    " " +
-    (["phone", "brand", "supplier", "image", "description", "address"].includes(
-      name,
-    )
-      ? ""
-      : "required") +
-    " " +
-    (help ? 'aria-describedby="' + id + '-help"' : "") +
-    ">" +
-    (help ? '<small id="' + id + '-help">' + esc(help) + "</small>" : "") +
-    "</div>"
-  );
+  const description =
+    fieldGuidance[name] ||
+    help ||
+    "Completa este dato para identificar el registro.";
+  const optional = [
+    "phone",
+    "brand",
+    "supplier",
+    "image",
+    "description",
+    "address",
+  ].includes(name);
+  const autocomplete = attrs.includes("autocomplete=")
+    ? ""
+    : `autocomplete="${{ email: "email", phone: "tel", current_password: "current-password" }[name] || "off"}"`;
+  return `<div class="field ${full ? "full" : ""}">${fieldLabel(name, label, id, description)}<input id="${id}" name="${name}" type="${type}" value="${esc(value)}" ${attrs} ${optional ? "" : "required"} ${autocomplete} ${["email", "url"].includes(type) ? 'spellcheck="false"' : ""} aria-describedby="${id}-help">${help ? `<small>${esc(help)}</small>` : ""}</div>`;
 }
 function selectField(
   name,
@@ -1334,37 +1399,11 @@ function selectField(
   help = "",
 ) {
   const id = "field-" + name;
-  return (
-    '<div class="field ' +
-    (full ? "full" : "") +
-    '"><label for="' +
-    id +
-    '">' +
-    esc(label) +
-    '</label><select name="' +
-    name +
-    '" id="' +
-    id +
-    '" required ' +
-    (help ? 'aria-describedby="' + id + '-help"' : "") +
-    ">" +
-    (!value ? '<option value="">Selecciona una opción</option>' : "") +
-    options
-      .map(
-        ([v, t]) =>
-          '<option value="' +
-          esc(v) +
-          '" ' +
-          (String(v) === String(value) ? "selected" : "") +
-          ">" +
-          esc(t) +
-          "</option>",
-      )
-      .join("") +
-    "</select>" +
-    (help ? '<small id="' + id + '-help">' + esc(help) + "</small>" : "") +
-    "</div>"
-  );
+  const description =
+    fieldGuidance[name] ||
+    help ||
+    "Selecciona la opción que corresponda a este registro.";
+  return `<div class="field ${full ? "full" : ""}">${fieldLabel(name, label, id, description)}<select name="${name}" id="${id}" required aria-describedby="${id}-help">${!value ? '<option value="">Selecciona una opción</option>' : ""}${options.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(value) ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>${help ? `<small>${esc(help)}</small>` : ""}</div>`;
 }
 function modal(title, description, body, formId = "", submit = "Guardar") {
   const m = $("#modal");
@@ -1486,8 +1525,8 @@ function customerModal(id) {
         "number",
         c.cutoff_day || "20",
         false,
-        "Día del mes, entre 1 y 28.",
-        'min="1" max="28" step="1"',
+        "Día del 1 al 31; se ajusta en meses cortos.",
+        'min="1" max="31" step="1"',
       ) +
       inputField(
         "cutoff_hour",
@@ -1504,8 +1543,8 @@ function customerModal(id) {
         "number",
         c.pay_day || "26",
         false,
-        "Día del mes, entre 1 y 28.",
-        'min="1" max="28" step="1"',
+        "Día del 1 al 31; se ajusta en meses cortos.",
+        'min="1" max="31" step="1"',
       ) +
       '</div></div><div class="form-section"><h3>Tasa de interés pactada</h3><div class="form-grid">' +
       inputField(
@@ -1960,17 +1999,27 @@ function renderLogin() {
   state.metricCurrency = null;
   state.dueFilter = "all";
   $("#app").innerHTML = `<main class="login" id="main">
-    <section class="login-story">${brand()}<div class="login-story-content"><h1>El cuaderno<br>de tu negocio.</h1><p>Ventas a crédito, fechas de pago y acuerdos con tus clientes. Cada cuenta en su lugar.</p>
-      <svg class="shop-illustration" viewBox="0 0 480 270" fill="none" aria-hidden="true"><path d="M32 244h416" stroke="#9bb1d4" stroke-width="2"/><path d="M70 107h340v137H70z" fill="#fff" stroke="#2857a6" stroke-width="2"/><path d="M91 32h298v46H91z" fill="#2754a5"/><path d="M114 55h98M268 55h98" stroke="#95b8f2" stroke-width="3"/><path d="M70 78h340l16 43H54z" fill="#fff" stroke="#2857a6" stroke-width="2"/><path d="M91 78h37l-5 43H80zM165 78h37l-2 43h-41zM239 78h37l2 43h-41zM313 78h37l8 43h-43zM387 78h23l16 43h-33z" fill="#5282ca"/><path d="M54 121v9c0 11 26 11 26 0 0 11 43 11 43 0 0 11 36 11 36 0 0 11 41 11 41 0 0 11 37 11 37 0 0 11 41 11 41 0 0 11 37 11 37 0 0 11 43 11 43 0 0 11 35 11 35 0 0 11 33 11 33 0v-9" fill="#fff" stroke="#2857a6" stroke-width="2"/><path d="M91 154h179v66H91z" fill="#e8f0fc" stroke="#2857a6" stroke-width="2"/><path d="M180 155v64M92 199h177" stroke="#9bb1d4" stroke-width="2"/><path d="M296 154h91v90h-91z" fill="#fff" stroke="#2857a6" stroke-width="2"/><path d="M307 165h69v42h-69z" fill="#e8f0fc"/><path d="M310 219h9" stroke="#2857a6" stroke-width="3" stroke-linecap="round"/><rect x="105" y="182" width="25" height="17" rx="2" fill="#e5b35a"/><rect x="135" y="170" width="25" height="29" rx="2" fill="#83a5d5"/><rect x="199" y="177" width="17" height="22" rx="2" fill="#83a5d5"/><rect x="225" y="183" width="29" height="16" rx="2" fill="#e5b35a"/><path d="M45 244v-37M34 212c-9-22 11-23 11-4 0-26 23-26 12-5" stroke="#7d9b89" stroke-width="3"/><path d="M31 224h28l-4 20H35z" fill="#c2d2c6"/></svg>
-      <div class="login-points"><span>${icon("bag")} Registra ventas</span><span>${icon("wallet")} Controla cobros</span><span>${icon("file")} Consulta saldos</span></div>
-    </div><p class="login-story-footer">Para los negocios que conocen a sus clientes.</p></section>
-    <section class="login-form-side"><div class="login-form-box"><div class="login-mobile-brand">${brand()}</div><h2>Iniciar sesión</h2><p>Ingresa con el acceso de tu tienda o tu cuenta personal.</p><form id="login-form">
-      <div class="field"><label for="login-user">Usuario</label><input id="login-user" name="username" placeholder="Tu nombre de usuario" required autocomplete="username" maxlength="60" autocapitalize="none" spellcheck="false"></div>
-      <div class="field"><label for="login-password">Contraseña</label><div class="password-input"><input id="login-password" type="password" name="password" placeholder="Ingresa tu contraseña" required autocomplete="current-password" maxlength="128"><button type="button" class="password-toggle" data-action="toggle-password" aria-label="Mostrar contraseña" aria-pressed="false">Mostrar</button></div></div>
-      <div class="challenge-box"><label for="login-answer">Verificación de acceso<strong id="challenge-question">Cargando…</strong></label><input id="login-answer" name="answer" inputmode="numeric" pattern="[0-9]+" autocomplete="off" placeholder="?" required aria-label="Respuesta de la comprobación"><button type="button" class="icon-button" data-action="new-challenge" aria-label="Otra comprobación" title="Otra comprobación">${icon("refresh")}</button></div>
-      <div id="login-error" class="error-text" role="alert"></div><button type="submit" class="btn primary">Entrar a mi cuenta ${icon("arrow")}</button>
-    </form><div class="login-bottom"><p>¿Necesitas un acceso?<br>Solicítalo al administrador de tu tienda.</p><button type="button" class="text-button" data-action="privacy">Política de privacidad</button></div></div><span class="login-copyright">Cuenta Clara © ${new Date().getFullYear()}</span></section>
+    <header class="login-header">${brand()}<button class="text-button" data-action="help">${icon("help")} Ayuda</button></header>
+    <div class="login-card">
+      <section class="login-story">
+        <div class="mascot-intro"><span class="welcome-tag">Tu negocio, bien acompañado</span><h1>Cada cuenta<br>en su lugar.</h1></div>
+        ${mascotIllustration()}
+        <p id="mascot-message" class="mascot-message">Todo listo para poner tus cuentas al día.</p>
+        <div class="login-story-bottom"><span>${icon("shield")} Acceso personal</span><span>${icon("store")} Para tu negocio</span></div>
+      </section>
+      <section class="login-form-side"><div class="login-form-box"><div class="login-heading-icon">${icon("wallet")}</div><h2>Bienvenido de nuevo</h2><p>Ingresa para revisar tus ventas, cobros y cuentas pendientes.</p>
+        <form id="login-form">
+          <div class="field"><label for="login-user">Usuario</label><input id="login-user" name="username" placeholder="Tu nombre de usuario…" required autocomplete="username" maxlength="80" autocapitalize="none" spellcheck="false" aria-describedby="login-user-help"><small id="login-user-help">Usa el acceso que te asignó el administrador.</small></div>
+          <div class="field"><label for="login-password">Contraseña</label><div class="password-input"><input id="login-password" type="password" name="password" placeholder="Ingresa tu contraseña…" required autocomplete="current-password" maxlength="128" aria-describedby="login-password-help"><button type="button" class="password-toggle" data-action="toggle-password" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña">${icon("eye")}</button></div><small id="login-password-help">El botón del ojo permite mostrar u ocultar lo escrito.</small></div>
+          <div class="challenge-box"><label for="login-answer"><span>Verificación de acceso</span><strong id="challenge-question">Cargando…</strong></label><input id="login-answer" name="answer" inputmode="numeric" pattern="[0-9]+" autocomplete="off" placeholder="?" required aria-label="Respuesta de la comprobación" aria-describedby="challenge-help"><button type="button" class="icon-button" data-action="new-challenge" aria-label="Otra comprobación" title="Generar otra suma">${icon("refresh")}</button></div><small class="challenge-help" id="challenge-help">Escribe el resultado de la suma para continuar.</small>
+          <div id="login-error" class="error-text" role="alert" tabindex="-1"></div><button type="submit" class="btn primary">Entrar a mi cuenta ${icon("arrow")}</button>
+        </form>
+        <p class="login-access-help">¿Aún no tienes acceso?<br><span>Solicítalo al administrador de tu tienda.</span></p>
+      </div></section>
+    </div>
+    <footer class="login-footer"><span>Cuenta Clara © ${new Date().getFullYear()}</span><button class="text-button" data-action="privacy">Privacidad y datos personales</button></footer>
   </main>`;
+  updateMascot();
   newChallenge();
 }
 async function runAction(button) {
@@ -1994,7 +2043,9 @@ async function runAction(button) {
       const input = $("#login-password");
       const visible = input.type === "password";
       input.type = visible ? "text" : "password";
-      button.textContent = visible ? "Ocultar" : "Mostrar";
+      button.innerHTML = icon(visible ? "eyeOff" : "eye");
+      button.title = visible ? "Ocultar contraseña" : "Mostrar contraseña";
+      updateMascot();
       button.setAttribute(
         "aria-label",
         visible ? "Ocultar contraseña" : "Mostrar contraseña",

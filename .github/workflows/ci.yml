@@ -27,6 +27,8 @@ jobs:
         run: |
           python -m compileall -q app.py finance.py tests
           node --check static/app.js
+          node --check static/icons.js
+          node --check static/mascot.js
       - name: Probar cálculos y API
         run: python -m unittest discover -s tests -v
       - name: Instalar navegador para pruebas

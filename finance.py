@@ -77,10 +77,11 @@ def due_anchor(purchased, cutoff_day, cutoff_hour, pay_day):
     """Ubica el corte y el pago base de una compra, incluyendo la hora."""
     if not isinstance(purchased, datetime):
         raise ValueError("La compra necesita fecha y hora.")
-    _integer(cutoff_day, 1, 28, "El día de corte debe estar entre 1 y 28.")
-    _integer(pay_day, 1, 28, "El día de pago debe estar entre 1 y 28.")
+    _integer(cutoff_day, 1, 31, "El día de corte debe estar entre 1 y 31.")
+    _integer(pay_day, 1, 31, "El día de pago debe estar entre 1 y 31.")
     _integer(cutoff_hour, 0, 23, "La hora de corte debe estar entre 0 y 23.")
-    cutoff = purchased.replace(day=cutoff_day, hour=cutoff_hour, minute=0, second=0, microsecond=0)
+    # En meses cortos se usa el último día disponible, conservando el día pactado.
+    cutoff = datetime.combine(month_date(purchased.date(), 0, cutoff_day), datetime.min.time()).replace(hour=cutoff_hour)
     offset = 0 if purchased <= cutoff else 1
     cycle = month_date(purchased.date(), offset, cutoff_day)
     payment = month_date(cycle, 0 if pay_day >= cutoff_day else 1, pay_day)

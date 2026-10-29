@@ -17,7 +17,9 @@ python -m pip install -r requirements.txt
 python app.py --demo
 ```
 
-En Windows también puedes abrir **iniciar.bat** dentro de la carpeta del proyecto.\n\nAbre **http://127.0.0.1:8000**. La terminal muestra las contraseñas generadas para estos accesos:
+En Windows también puedes abrir **iniciar.bat** dentro de la carpeta del proyecto.
+
+Abre **http://127.0.0.1:8000**. La terminal muestra las contraseñas generadas para estos accesos:
 
 | Usuario | Perfil |
 | --- | --- |
@@ -58,9 +60,11 @@ No incluye stock ni impuestos: el enunciado los excluye del alcance obligatorio.
 4. En pagos, selecciona el cliente y liquida el total exigible del día. Si no hay vencimientos actuales, puedes pagar completo el próximo vencimiento de forma anticipada; se mantiene el interés pactado hasta su vencimiento. No se aceptan abonos parciales.
 5. En estados de cuenta puedes consultar el detalle de compras, cuotas, intereses y mora. El cliente ve solo su información.
 
-La fecha de trabajo se toma del servidor en **America/Lima**. Las fechas de corte y pago admiten días 1 al 28 para que existan todos los meses. El sistema usa una base comercial de **30/360**, documentada en [el modelo financiero](docs/FINANZAS.md).
+La fecha de trabajo se toma del servidor en **America/Lima**. Las fechas de corte y pago admiten días 1 al 31; si el mes es más corto se usa su último día y después se recupera el día pactado. El sistema usa una base comercial de **30/360**, documentada en [el modelo financiero](docs/FINANZAS.md).
 
-Las compras de períodos ya cerrados se rechazan para conservar el historial. Los cierres recuperados usan el calendario de corte vigente del cliente; los cronogramas de las compras conservan sus propias condiciones. Las consultas históricas reconstruyen pagos por fecha, sin distinguir su hora dentro del mismo día.\n\nEl cierre se ejecuta al iniciar el servidor y después cada minuto. Si el servidor estuvo apagado, recupera los cierres pendientes al volver a encenderlo. También puede ejecutarse con `python app.py --close-statements`. Los cierres guardados son fotografías del corte; las consultas del día añaden la mora vigente.
+Las compras de períodos ya cerrados se rechazan para conservar el historial. Los cierres recuperados usan el calendario de corte vigente del cliente; los cronogramas de las compras conservan sus propias condiciones. Las consultas históricas reconstruyen pagos por fecha, sin distinguir su hora dentro del mismo día.
+
+El cierre se ejecuta al iniciar el servidor y después cada minuto. Si el servidor estuvo apagado, recupera los cierres pendientes al volver a encenderlo. También puede ejecutarse con `python app.py --close-statements`. Los cierres guardados son fotografías del corte; las consultas del día añaden la mora vigente.
 
 ## Estructura
 
@@ -105,4 +109,17 @@ Más detalles en [Arquitectura](docs/ARQUITECTURA.md) y [Finanzas](docs/FINANZAS
 
 ## Referencias de interfaz
 
-Diseño propio con referencias de organización de [shadcn/ui Dashboard](https://ui.shadcn.com/examples/dashboard): navegación lateral, indicadores, tablas y jerarquía visual. Los componentes de esta app están escritos en HTML, CSS y JavaScript.
+El acceso incluye un búho en SVG: sigue el puntero y se tapa los ojos cuando se muestra la contraseña. Respeta la preferencia de movimiento reducido. Logo y controles usan trazos de [Lucide](https://github.com/lucide-icons/lucide), con su [licencia incluida](static/vendor/LUCIDE-LICENSE.txt). La tipografía Public Sans se sirve localmente.
+
+La organización del espacio de trabajo toma referencias de [shadcn/ui Dashboard](https://ui.shadcn.com/examples/dashboard); la interacción del personaje se inspira en los avatares de acceso de [Darin Senneff](https://codepen.io/dsenneff). La ilustración y los componentes están implementados en SVG, HTML, CSS y JavaScript sin copiar código de esas demostraciones.
+
+## Documentación del proyecto
+
+- [Requisitos y evidencias](docs/REQUISITOS.md).
+- [Análisis de entradas, salidas e interfaces](docs/ANALISIS.md).
+- [Algoritmos y diagramas](docs/ALGORITMOS.md).
+- [Modelo de datos y diccionario físico](docs/MODELO_DE_DATOS.md).
+- [Dos casos financieros resueltos](docs/DATOS_DE_PRUEBA.md).
+- [Marco de referencia y metodología](docs/MARCO_Y_METODOLOGIA.md).
+- [Manual y guion de demostración](docs/MANUAL.md).
+- [Plan de pruebas](docs/PRUEBAS.md) y [contrato de API](docs/API.md).

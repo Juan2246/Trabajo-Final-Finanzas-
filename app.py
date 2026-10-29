@@ -18,7 +18,7 @@ from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
 from zoneinfo import ZoneInfo
 
-from finance import number, money, factor, make_plan, late_interest, month_date
+from finance import number, money, factor, make_plan, late_interest, month_date, commercial_days
 
 ROOT = Path(__file__).resolve().parent
 ZONE = ZoneInfo("America/Lima")
@@ -171,9 +171,9 @@ def customer_values(data):
         ("name", 120, True), ("document", 30, True), ("phone", 30, False))}
     values.update(email=email, currency=currency, credit_limit=decimal_field(data, "credit_limit", "0.01"),
                   max_months=integer(data.get("max_months"), 1, 60),
-                  cutoff_day=integer(data.get("cutoff_day"), 1, 28),
+                  cutoff_day=integer(data.get("cutoff_day"), 1, 31),
                   cutoff_hour=integer(data.get("cutoff_hour", 23), 0, 23),
-                  pay_day=integer(data.get("pay_day"), 1, 28))
+                  pay_day=integer(data.get("pay_day"), 1, 31))
     for prefix in ("", "late_"):
         values[prefix + "rate"] = decimal_field(data, prefix + "rate", "0", "1000", 6)
         kind = data.get(prefix + ("rate_kind" if not prefix else "kind"))
@@ -284,7 +284,7 @@ def save_sale(db, store_id, data, user):
 
 def due_rows(db, store_id, customer_id=None, as_of=None):
     as_of = as_of or now().date()
-    sql = """SELECT d.*,s.customer_id,c.name AS customer_name,s.currency,s.terms_json,s.purchased_at,
+    sql = """SELECT d.*,s.customer_id,c.name AS customer_name,s.currency,s.terms_json,s.purchased_at,s.mode,
              p.paid_at FROM dues d JOIN sales s ON s.id=d.sale_id
              JOIN customers c ON c.id=s.customer_id LEFT JOIN payments p ON p.id=d.payment_id
              WHERE s.store_id=?"""
@@ -297,12 +297,20 @@ def due_rows(db, store_id, customer_id=None, as_of=None):
         row = dict(raw)
         paid_date = date.fromisoformat(row["paid_at"][:10]) if row["paid_at"] else None
         effective_date = min(as_of, paid_date) if paid_date else as_of
+        terms = json.loads(row.pop("terms_json"))
         interest, days = late_interest(row["amount"], date.fromisoformat(row["due_date"]),
-                                       effective_date, json.loads(row.pop("terms_json")))
+                                       effective_date, terms)
         if paid_date and paid_date > as_of:
             row["payment_id"] = None
             row["paid_at"] = None
-        row.update(late_amount=str(interest), late_days=days, total=str(money(number(row["amount"]) + interest)))
+        row.update(late_amount=str(interest), late_days=days,
+                   late_base=row["amount"], late_as_of=effective_date.isoformat(),
+                   interest_days=(commercial_days(
+                       min(date.fromisoformat(row["purchased_at"][:10]), date.fromisoformat(row["due_date"])),
+                       date.fromisoformat(row["due_date"])) if row["mode"] == "end" else 30),
+                   total=str(money(number(row["amount"]) + interest)))
+        for key in ("rate", "rate_kind", "rate_period", "frequency", "late_rate", "late_kind", "late_period", "late_frequency"):
+            row[key] = terms[key]
         rows.append(row)
     return rows
 
@@ -399,7 +407,9 @@ class Application:
                     raise Problem("Método no permitido.", 405)
                 names = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
                          "/styles.css": ("styles.css", "text/css"), "/favicon.svg": ("favicon.svg", "image/svg+xml"),
-                         "/fonts/public-sans.ttf": ("fonts/public-sans.ttf", "font/ttf")}
+                         "/fonts/public-sans.ttf": ("fonts/public-sans.ttf", "font/ttf"),
+                         "/icons.js": ("icons.js", "text/javascript"),
+                         "/mascot.js": ("mascot.js", "text/javascript")}
                 if path not in names:
                     raise Problem("La página no existe.", 404)
                 name, mime = names[path]

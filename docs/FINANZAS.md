@@ -8,7 +8,7 @@ Las reglas siguen el enunciado del curso SI642 compartido para este proyecto. So
 
 - La base es **30/360**: un mes tiene 30 días y un año 360.
 - Para contar días se usa `360 × diferencia de años + 30 × diferencia de meses + min(día final, 30) − min(día inicial, 30)`.
-- Se conserva el calendario real para mostrar vencimientos. Los días de corte y pago se configuran entre 1 y 28 para que existan todos los meses.
+- Se conserva el calendario real para mostrar vencimientos. Los días de corte y pago se configuran entre 1 y 31. Si un mes es más corto, se usa su último día; el siguiente mes vuelve al día pactado. Por ejemplo, día 31: 28/02/2026, 31/03/2026, 30/04/2026.
 - La hora de corte se interpreta en la zona horaria del negocio configurada por el servidor. Una compra exactamente a la hora de corte pertenece al período que cierra; un segundo después pasa al siguiente.
 - Si el día de pago es menor que el de corte, el pago corresponde al mes siguiente al corte.
 - El cálculo comercial puede diferir de los días naturales: del 28 de febrero al 1 de marzo son 3 días bajo esta convención. No se mezclan bases en un mismo crédito.
@@ -131,8 +131,11 @@ python -m unittest discover -s tests -v
 
 ## Referencias de implementación
 
+Los dos juegos completos, con cifras de capital, cuota, interés, saldo y mora, están en [DATOS_DE_PRUEBA.md](DATOS_DE_PRUEBA.md).
+
 - Enunciado del Trabajo Final SI642 Finanzas e Ingeniería Económica, proporcionado por el grupo.
 - [Python: aritmética decimal](https://docs.python.org/3/library/decimal.html).
 - [Python: fechas y horas](https://docs.python.org/3/library/datetime.html).
+- [OpenStax: amortización de préstamos](https://openstax.org/books/principles-finance-2e/pages/8-3-loan-amortization).
 
 Las fórmulas se exponen para que el grupo pueda contrastarlas con la bibliografía y las convenciones acordadas con su profesor.

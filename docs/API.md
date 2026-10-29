@@ -66,5 +66,6 @@ El estado de cuenta incluye:
 - `totals`: saldo total pendiente, separado por moneda.
 - `closed_statements`: cierres disponibles.
 - `is_closed`: distingue un cierre guardado de una consulta actual.
+- Cada cuota consultada incluye `interest_days`, `late_days`, `late_base`, `late_as_of`, `late_amount`, `total` y las tasas originales (`rate`, `rate_kind`, `rate_period`, `frequency`, `late_rate`, `late_kind`, `late_period`, `late_frequency`). Los cierres antiguos pueden no contener los campos agregados después; la interfaz conserva su lectura y usa las condiciones históricas de la compra como respaldo.
 
 Los cierres no se vuelven a escribir cuando cambia una tasa. La mora de una consulta actual se recalcula por separado; un cierre muestra la información que quedó registrada en su corte.

@@ -57,3 +57,26 @@ El recorrido comprueba los filtros de cuotas (todos, vencidos y próximos), el c
 Se crean y editan clientes y productos, se registra una venta y su pago completo, y se exporta el estado de cuenta a CSV y PDF. Las vistas se revisan con anchos de 1440, 390 y 320 píxeles. Las tablas generales permiten desplazamiento interno; los pendientes del resumen se reorganizan en filas con su acción visible en celular.
 
 Las conexiones de prueba usan el mismo administrador de contexto que la aplicación para cerrar la base al salir del bloque. Esto permite eliminar las bases temporales también en Windows.
+
+## Ampliación de calendario y detalle financiero
+
+- Corte día 31 en febrero normal y bisiesto; compra exactamente a la hora del corte y un segundo después.
+- Calendario que vuelve al día 30/31 tras febrero, incluyendo cierres automáticos y cambio de año.
+- Caso A con cuotas 341.27, 341.27 y 341.26; caso B con obligación 510.57, mora 3.04 y total 513.61.
+- Desglose de mora que conserva tasa, base y días aunque cambie después el acuerdo del cliente.
+- Búho con ojos abiertos al ocultar la clave y cubiertos al mostrarla, también con movimiento reducido y en celular.
+- Alta del cliente con corte/pago 31, ayuda de campo y detalle de mora visible tanto al consultar como al cobrar.
+
+## Plan de aceptación
+
+| Fase | Técnica | Entrada | Criterio de salida |
+| --- | --- | --- | --- |
+| Motor | Caja blanca y valores frontera | Casos A/B, tasa cero, fechas y datos no finitos | Fechas, cuotas, amortización y mora coinciden con los resultados documentados. |
+| API | Caja negra | Peticiones válidas, parciales, ajenas y sin sesión | Respuestas y permisos correctos; no hay operaciones parciales guardadas. |
+| Persistencia/concurrencia | Caja gris | Peticiones simultáneas e inspección de BD temporal | No se excede el crédito ni se duplica un cobro; el cierre no se sobrescribe. |
+| Navegador | Caja negra, recorrido funcional | Tres perfiles, compra y pago completos | Flujo completo sin errores JS; CSV/PDF generados y sin desborde horizontal. |
+| Despliegue | Integración | Imagen Docker, volumen persistente y reinicio | Health responde y el usuario inicial permanece tras reiniciar. |
+
+Precondiciones: Python y tzdata instalados, Chromium para el recorrido, bases temporales y datos ficticios. Responsabilidad de revisión: quien integra el cambio debe revisar el resultado y las capturas; el grupo asigna sus responsables académicos reales.
+
+Una prueba fallida bloquea la integración hasta corregirla o justificar un cambio de alcance. Registrar caso, entrada, esperado, obtenido y corrección. Los nombres de casos en `tests/` son el inventario ejecutable; el resultado de GitHub Actions acredita únicamente el commit al que pertenece. No se presenta este plan como prueba de carga, auditoría de seguridad completa ni estudio de usabilidad con personas.

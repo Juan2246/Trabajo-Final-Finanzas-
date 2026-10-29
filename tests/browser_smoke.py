@@ -56,6 +56,12 @@ def business_flows(page, context, url):
     page.locator('[data-page="customers"]').first.click()
     page.locator('[data-action="new-customer"]').first.click()
     customer = page.locator("#customer-form")
+    customer.locator('[name=cutoff_day]').fill('31')
+    customer.locator('[name=pay_day]').fill('31')
+    expect(customer.locator('[name=cutoff_day]')).to_have_attribute('max', '31')
+    customer.locator('.field-help').first.locator('summary').click()
+    expect(customer.locator('.field-help[open] p')).to_be_visible()
+    customer.locator('.field-help[open] summary').click()
     for name, value in {
         "name": "Lucía Prueba", "document": "77777777",
         "email": "lucia@example.test", "phone": "999555666",
@@ -119,6 +125,8 @@ def business_flows(page, context, url):
     assert pending.value.status == 200, pending.value.text()
     page.locator("#statement-output .statement").wait_for()
     assert "Lucía Prueba" in page.locator("#statement-output").inner_text()
+    expect(page.locator('#statement-output .late-breakdown')).to_be_visible()
+    expect(page.locator('#statement-output .late-breakdown')).to_contain_text('Tasa pactada')
     page.screenshot(path=str(ARTIFACTS / "06-estado-de-cuenta.png"), full_page=True)
     with page.expect_download() as downloaded:
         page.locator('[data-action="export-statement"]').click()
@@ -133,6 +141,8 @@ def business_flows(page, context, url):
     quote = mutate_with_ui(page, "/api/payments/preview",
         lambda: page.locator("#payment-form button[type=submit]").click())
     assert float(quote["amount"]) > 24
+    expect(page.locator('#payment-preview .late-breakdown')).to_be_visible()
+    assert all(d['late_days'] > 0 and 'late_rate' in d and 'late_base' in d for d in quote['dues'])
     page.locator('[data-action="confirm-payment"]').click()
     payment = mutate_with_ui(page, "/api/payments",
         lambda: page.locator('[data-action="save-payment"]').click())
@@ -264,13 +274,24 @@ def main():
                     try:
                         page.goto(url, wait_until="networkidle")
                         page.locator("#login-form").wait_for()
+                        expect(page.locator('[data-mascot]')).to_have_attribute('data-eyes', 'open')
+                        for width in (390, 320):
+                            page.set_viewport_size({'width': width, 'height': 844})
+                            expect(page.locator('[data-mascot]')).to_be_visible()
+                            check_mobile_layout(page, 'acceso-celular-' + str(width))
+                        page.set_viewport_size({'width': 1440, 'height': 1000})
                         page.screenshot(path=str(ARTIFACTS / "01-acceso.png"), full_page=True)
                         page.locator("#login-form input[name=username]").fill("tienda")
                         page.locator("#login-form input[name=password]").fill("PruebaSegura2026!")
                         page.locator('[data-action="toggle-password"]').click()
                         expect(page.locator('#login-password')).to_have_attribute('type', 'text')
+                        expect(page.locator('[data-mascot]')).to_have_attribute('data-eyes', 'covered')
+                        page.screenshot(path=str(ARTIFACTS / 'acceso-ojos-tapados.png'), full_page=True)
+                        page.emulate_media(reduced_motion='reduce')
                         page.locator('[data-action="toggle-password"]').click()
                         expect(page.locator('#login-password')).to_have_attribute('type', 'password')
+                        expect(page.locator('[data-mascot]')).to_have_attribute('data-eyes', 'open')
+                        page.emulate_media(reduced_motion='no-preference')
                         question = page.locator("#challenge-question").inner_text()
                         answer = sum(int(x) for x in re.findall(r"\d+", question))
                         page.locator("#login-form input[name=answer]").fill(str(answer))
