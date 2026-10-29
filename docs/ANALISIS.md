@@ -50,13 +50,13 @@ Las listas del navegador contienen opciones por conveniencia, pero el servidor v
 
 | Variable | Tipo / precisión | Significado y restricción |
 | --- | --- | --- |
-| factor | Decimal; precisión local 36 en conversión | Acumulación para d días; ≥ 1 para tasas admitidas. |
-| monthly | Decimal | Factor de 30 días menos uno; se conserva precisión antes de redondear dinero. |
+| factor | BigDecimal; precisión local 36 en conversión | Acumulación para d días; ≥ 1 para tasas admitidas. |
+| monthly | BigDecimal | Factor de 30 días menos uno; se conserva precisión antes de redondear dinero. |
 | cycle / anchor | date | Corte asignado y fecha base de pago. |
 | grace_days / late_days | Entero no negativo | Días comerciales de gracia o mora. |
-| financed | Decimal monetario, 2 decimales | Capital más gracia capitalizada en cuotas. |
-| balance / amortization / interest | Decimal monetario, 2 decimales | Saldo, amortización e interés de una cuota. |
-| outstanding / available | Decimal monetario | Capital pendiente y límite menos ese capital. |
+| financed | BigDecimal monetario, 2 decimales | Capital más gracia capitalizada en cuotas. |
+| balance / amortization / interest | BigDecimal monetario, 2 decimales | Saldo, amortización e interés de una cuota. |
+| outstanding / available | BigDecimal monetario | Capital pendiente y límite menos ese capital. |
 | terms | Objeto JSON | Copia de tasa, moneda, calendario y plazo pactados en una compra. |
 | csrf / token | Cadena aleatoria segura | Vinculados a la sesión; nunca se incluyen en exportaciones de negocio. |
 | snapshot | JSON | Fotografía del estado de cuenta al corte; inmutable después de crearse. |
@@ -88,6 +88,6 @@ Las listas del navegador contienen opciones por conveniencia, pero el servidor v
 | Tiendas | Administración de plataforma | Datos del comercio y acceso de su responsable. |
 | Movimientos / configuración | Auditoría y contraseña | Permisos por perfil; cambio de clave revoca otras sesiones. |
 
-Las capturas reproducibles se generan con `python tests/browser_smoke.py` y quedan en `test-results/`. Se comprueban anchos de 1440, 390 y 320 píxeles. Los iconos son Lucide, la tipografía es Public Sans local y la ilustración del acceso usa SVG; no hay dependencias de CDN durante el acceso.
+Las capturas reproducibles se generan con `python tests/browser_smoke.py` y quedan en `test-results/`. Se comprueban anchos de 1440, 390 y 320 píxeles. Los iconos son Lucide, las tipografías son Manrope y Public Sans locales y la ilustración del acceso usa SVG; no hay dependencias de CDN durante el acceso.
 
 Seguridad y conectividad: [ARQUITECTURA.md](ARQUITECTURA.md). Diccionario físico: [MODELO_DE_DATOS.md](MODELO_DE_DATOS.md). Técnicas, casos y aceptación: [PRUEBAS.md](PRUEBAS.md).

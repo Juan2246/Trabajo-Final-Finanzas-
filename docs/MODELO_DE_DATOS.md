@@ -1,6 +1,6 @@
 # Modelo de datos y diccionario físico
 
-El modelo usa 14 tablas SQL. El DDL ejecutable es [schema.sql](../schema.sql). Los diagramas expresan relaciones de negocio; la tabla de cada entidad especifica las claves realmente declaradas.
+El modelo usa 14 tablas SQL. El DDL ejecutable es [schema.sql](../src/main/resources/db/schema.sql). Los diagramas expresan relaciones de negocio; la tabla de cada entidad especifica las claves realmente declaradas.
 
 ## Modelo lógico del crédito
 
@@ -247,4 +247,4 @@ La relación una cuota–una línea de pago y un usuario de cliente se controlan
 
 Los cierres conservan su snapshot aunque después cambien tasas. Las sesiones vencen a las ocho horas y los desafíos a los cinco minutos; se limpian en operaciones de acceso. Para respaldos consistentes se usa la API de backup de sqlite3 o se copia la base con el servidor detenido. Los datos reales no se suben a Git.
 
-Referencia: [tipos de SQLite](https://www.sqlite.org/datatype3.html) y [sqlite3 de Python](https://docs.python.org/3/library/sqlite3.html).
+Referencia: [tipos de SQLite](https://www.sqlite.org/datatype3.html) y [dialectos de Hibernate](https://docs.hibernate.org/orm/6.6/dialect/).

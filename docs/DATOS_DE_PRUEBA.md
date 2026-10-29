@@ -1,6 +1,6 @@
 # Juegos de datos resueltos
 
-Importes en soles, base comercial 30/360 y redondeo HALF_UP a dos decimales. Los resultados se contrastan con operaciones de Decimal y las pruebas automatizadas; no usan datos personales reales.
+Importes en soles, base comercial 30/360 y redondeo HALF_UP a dos decimales. Los resultados se contrastan con operaciones de BigDecimal y las pruebas automatizadas; no usan datos personales reales.
 
 ## A. Tres cuotas con gracia total
 
@@ -64,4 +64,4 @@ El reporte debe mostrar por separado base vencida **510.57**, **9 días** y tasa
 | Dos compras simultáneas que juntas superan el límite | Solo la operación que cabe se confirma |
 | Dos cobros de las mismas cuotas | Un solo recibo válido |
 
-Pruebas relacionadas: `test_finance.py`, `test_app.py`, `test_concurrency.py`, `test_statements.py` y `test_preview.py`. [PRUEBAS.md](PRUEBAS.md) explica la ejecución y las evidencias de navegador.
+Pruebas relacionadas: `FinancialEngineTest`, `PasswordServiceTest` y `ApiIntegrationTest`. [PRUEBAS.md](PRUEBAS.md) explica la ejecución y las evidencias de navegador.

@@ -1,6 +1,6 @@
 # Plan de pruebas
 
-Las pruebas usan cuentas y bases temporales, nunca datos reales. Cada caso de API crea su propia base y la elimina al terminar.
+Las pruebas usan cuentas y bases temporales, nunca datos reales. Los casos de API comparten una base temporal del contexto Spring y la vacían entre pruebas; se elimina al finalizar la clase.
 
 ## Casos financieros
 
@@ -34,16 +34,16 @@ Las pruebas usan cuentas y bases temporales, nunca datos reales. Cada caso de AP
 
 ## Técnicas y ejecución
 
-Se combinan pruebas de caja blanca del motor con pruebas de caja negra sobre la API WSGI y el navegador. Los controles de base de datos en las pruebas de API verifican la atomicidad de las operaciones.
+Se combinan pruebas de caja blanca del motor con pruebas de caja negra sobre la API HTTP mediante MockMvc y Spring Security y el navegador. Los controles de base de datos en las pruebas de API verifican la atomicidad de las operaciones.
 
 ```sh
-python -m unittest discover -s tests -v
+./mvnw verify
 ```
 
-Para el recorrido visual:
+Para el recorrido visual, primero compila el JAR con `./mvnw package` (Windows: `.\mvnw.cmd package`). Después:
 
 ```sh
-python -m pip install playwright==1.64.1
+python -m pip install -r requirements-dev.txt
 python -m playwright install chromium
 python tests/browser_smoke.py
 ```
@@ -56,7 +56,7 @@ El recorrido comprueba los filtros de cuotas (todos, vencidos y próximos), el c
 
 Se crean y editan clientes y productos, se registra una venta y su pago completo, y se exporta el estado de cuenta a CSV y PDF. Las vistas se revisan con anchos de 1440, 390 y 320 píxeles. Las tablas generales permiten desplazamiento interno; los pendientes del resumen se reorganizan en filas con su acción visible en celular.
 
-Las conexiones de prueba usan el mismo administrador de contexto que la aplicación para cerrar la base al salir del bloque. Esto permite eliminar las bases temporales también en Windows.
+Las pruebas de integración cierran el pool JDBC antes de eliminar su base temporal. El recorrido de navegador detiene el proceso Java al terminar, también en Windows.
 
 ## Ampliación de calendario y detalle financiero
 
@@ -77,6 +77,16 @@ Las conexiones de prueba usan el mismo administrador de contexto que la aplicaci
 | Navegador | Caja negra, recorrido funcional | Tres perfiles, compra y pago completos | Flujo completo sin errores JS; CSV/PDF generados y sin desborde horizontal. |
 | Despliegue | Integración | Imagen Docker, volumen persistente y reinicio | Health responde y el usuario inicial permanece tras reiniciar. |
 
-Precondiciones: Python y tzdata instalados, Chromium para el recorrido, bases temporales y datos ficticios. Responsabilidad de revisión: quien integra el cambio debe revisar el resultado y las capturas; el grupo asigna sus responsables académicos reales.
+Precondiciones: JDK 21 instalado; Python y requirements-dev.txt solo para las pruebas de navegador, Chromium para el recorrido, bases temporales y datos ficticios. Responsabilidad de revisión: quien integra el cambio debe revisar el resultado y las capturas; el grupo asigna sus responsables académicos reales.
 
-Una prueba fallida bloquea la integración hasta corregirla o justificar un cambio de alcance. Registrar caso, entrada, esperado, obtenido y corrección. Los nombres de casos en `tests/` son el inventario ejecutable; el resultado de GitHub Actions acredita únicamente el commit al que pertenece. No se presenta este plan como prueba de carga, auditoría de seguridad completa ni estudio de usabilidad con personas.
+Una prueba fallida bloquea la integración hasta corregirla o justificar un cambio de alcance. Registrar caso, entrada, esperado, obtenido y corrección. Los nombres de casos en `src/test/` y `tests/` son el inventario ejecutable; el resultado de GitHub Actions acredita únicamente el commit al que pertenece. No se presenta este plan como prueba de carga, auditoría de seguridad completa ni estudio de usabilidad con personas.
+
+## Inventario Java
+
+| Suite | Casos | Comprobación |
+| --- | --- | --- |
+| FinancialEngineTest | 184 | 180 planes completos de referencia y cuatro casos adicionales de calendario, tasa cero, validación y mora |
+| PasswordServiceTest | 3 | Formato anterior, sales aleatorias independientes y requisitos de contraseña |
+| ApiIntegrationTest | 20 | Autenticación, CSRF, permisos, aislamiento, consentimiento, validaciones, simulación, atomicidad, pagos, concurrencia, historia y cierres |
+
+Total: **207 pruebas JUnit**, además del recorrido en Chromium y la prueba del contenedor. Los resultados concretos se consultan en `target/surefire-reports/` y en GitHub Actions. El fixture `legacy-finance-cases.json` contiene resultados previos a la migración; no se regenera con el motor bajo prueba.

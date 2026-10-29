@@ -6,15 +6,15 @@ Referencia: enunciado de SI642 Finanzas e Ingeniería Económica proporcionado p
 
 | ID | Requisito | Implementación y comprobación |
 | --- | --- | --- |
-| RF01 | Varios negocios de distintos giros en una plataforma | Tiendas independientes por `store_id`; rubro libre. Pruebas de aislamiento y concurrencia en `test_app.py` y `test_concurrency.py`. |
+| RF01 | Varios negocios de distintos giros en una plataforma | Tiendas independientes por `store_id`; rubro libre. Pruebas de aislamiento y concurrencia en `ApiIntegrationTest.java`. |
 | RF02 | Administrador de plataforma distinto al del comercio | Perfiles `platform`, `merchant`, `customer`; autorización en el servidor. Prueba real de los tres perfiles en `browser_smoke.py`. |
 | RF03 | Alta y baja de tiendas y accesos | Sección Tiendas del administrador; baja lógica con revocación de sesiones. |
 | RF04 | Acceso y salida seguros | Contraseñas de 12–128 caracteres, PBKDF2, desafío aritmético de un solo uso, bloqueo de intentos, sesión con vencimiento, logout y CSRF. El desafío es el mecanismo de verificación elegido; no se presenta como MFA ni verificación por correo. |
 | RF05 | Catálogo genérico de productos y servicios | Nombre, descripción, proveedor, marca, unidad, imagen HTTPS, precios contado/crédito, moneda y permiso de cuotas. Una prestación se registra como servicio con su unidad correspondiente. Alta, edición y baja lógica. |
 | RF06 | Clientes y condiciones pactadas | Identificación, contacto, moneda, límite, tasas nominales/efectivas, frecuencia, plazo máximo, corte con hora, día de pago y usuario de consulta. |
 | RF07 | Política y consentimiento | Política visible en el acceso y alta; consentimiento obligatorio, fecha y versión guardadas. La baja no borra saldos ni recibos. |
-| RF08 | Método francés vencido, meses de 30 días | `make_plan` en `finance.py`, Decimal y última cuota conciliada. Caso numérico A en `DATOS_DE_PRUEBA.md`. |
-| RF09 | Gracia total capitalizada antes de las cuotas | Compra del 15/09, corte 20, pago 26: 11 días de gracia; primera cuota el 26/10. Prueba `test_course_example`. |
+| RF08 | Método francés vencido, meses de 30 días | `FinancialEngine.plan` en `finance/FinancialEngine.java`, Decimal y última cuota conciliada. Caso numérico A en `DATOS_DE_PRUEBA.md`. |
+| RF09 | Gracia total capitalizada antes de las cuotas | Compra del 15/09, corte 20, pago 26: 11 días de gracia; primera cuota el 26/10. Prueba `FinancialEngineTest` y su matriz de 180 planes. |
 | RF10 | Interés por compra hasta el pago al cierre | Factor correspondiente a los días comerciales de cada compra y su tasa guardada. Caso B. |
 | RF11 | Compra posterior al corte al ciclo siguiente | Comparación de fecha y hora; pruebas del instante exacto y un segundo después. |
 | RF12 | Control de crédito y rechazo de pagos parciales | Verificación del capital pendiente dentro de transacción; pago exacto de la liquidación completa, sin doble cancelación. Pruebas de API y concurrencia. |
@@ -36,7 +36,7 @@ El inventario/stock y los impuestos se excluyen expresamente de lo obligatorio a
 | Marco legal, metodología, ciclo de vida y calidad | `MARCO_Y_METODOLOGIA.md`, con fuentes primarias. |
 | Entradas, salidas, datos intermedios e interfaces | `ANALISIS.md`, `API.md` y capturas del recorrido de navegador. |
 | Algoritmo y procesos | `ALGORITMOS.md`: pseudocódigo financiero y diagramas de actividades. |
-| Modelo lógico/físico y diccionario | `MODELO_DE_DATOS.md` y el DDL ejecutable `schema.sql`. |
+| Modelo lógico/físico y diccionario | `MODELO_DE_DATOS.md` y el DDL ejecutable `src/main/resources/db/schema.sql`. |
 | Conectividad, código, ayuda y pruebas | `ARQUITECTURA.md`, `MANUAL.md`, `PRUEBAS.md`, fuentes y GitHub Actions. |
 | Presentación y anexos | Guion de demostración en `MANUAL.md`; capturas y PDF de la prueba real como artefactos de CI. |
 

@@ -1,6 +1,6 @@
 # Cómo salen las cuotas
 
-El motor está en [finance.py](../finance.py). Los cálculos usan `Decimal`: el monto no pasa por números binarios de punto flotante. Se redondea a dos decimales con `ROUND_HALF_UP`.
+El motor está en [FinancialEngine.java](../src/main/java/pe/cuentaclara/finance/FinancialEngine.java). Los cálculos usan `BigDecimal`: el monto no pasa por números binarios de punto flotante. Se redondea a dos decimales con `RoundingMode.HALF_UP`.
 
 Las reglas siguen el enunciado del curso SI642 compartido para este proyecto. Son decisiones del modelo académico, no una validación de condiciones legales de crédito.
 
@@ -126,7 +126,7 @@ Resultado esperado:
 Las pruebas también comprueban límites, fechas entre años, febrero, tasas equivalentes, datos inválidos, cuota final y tasas cero. Para ejecutarlas:
 
 ```sh
-python -m unittest discover -s tests -v
+./mvnw verify
 ```
 
 ## Referencias de implementación
@@ -134,8 +134,8 @@ python -m unittest discover -s tests -v
 Los dos juegos completos, con cifras de capital, cuota, interés, saldo y mora, están en [DATOS_DE_PRUEBA.md](DATOS_DE_PRUEBA.md).
 
 - Enunciado del Trabajo Final SI642 Finanzas e Ingeniería Económica, proporcionado por el grupo.
-- [Python: aritmética decimal](https://docs.python.org/3/library/decimal.html).
-- [Python: fechas y horas](https://docs.python.org/3/library/datetime.html).
+- [Java: BigDecimal](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/BigDecimal.html).
+- [Java: fechas y horas](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/package-summary.html).
 - [OpenStax: amortización de préstamos](https://openstax.org/books/principles-finance-2e/pages/8-3-loan-amortization).
 
 Las fórmulas se exponen para que el grupo pueda contrastarlas con la bibliografía y las convenciones acordadas con su profesor.

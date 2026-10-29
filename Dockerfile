@@ -1,22 +1,21 @@
-FROM python:3.12-slim
+FROM eclipse-temurin:21-jdk-jammy AS build
+RUN apt-get update && apt-get install -y --no-install-recommends unzip \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+COPY .mvn .mvn
+COPY mvnw pom.xml ./
+RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline
+COPY src src
+RUN ./mvnw -B -q -DskipTests package
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    HOST=0.0.0.0 \
-    PORT=8000 \
-    DB_PATH=/data/cuenta.db
-
+FROM eclipse-temurin:21-jre-jammy
+ENV HOST=0.0.0.0 PORT=8000 DB_PATH=/data/cuenta.db
 WORKDIR /app
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-RUN useradd --uid 10001 --create-home appuser \
-    && mkdir /data \
-    && chown appuser:appuser /data
-COPY --chown=appuser:appuser app.py finance.py schema.sql ./
-COPY --chown=appuser:appuser static ./static
+RUN groupadd --gid 10001 appuser \
+    && useradd --uid 10001 --gid 10001 --create-home appuser \
+    && mkdir /data && chown appuser:appuser /data
+COPY --from=build --chown=appuser:appuser /build/target/cuenta-clara.jar ./cuenta-clara.jar
 USER appuser
 VOLUME ["/data"]
 EXPOSE 8000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)" || exit 1
-CMD ["python", "app.py"]
+ENTRYPOINT ["java", "-jar", "cuenta-clara.jar"]

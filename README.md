@@ -8,34 +8,31 @@ Proyecto del curso **SI642 — Finanzas e Ingeniería Económica**.
 
 ## Pruébala en tu computadora
 
-Necesitas **Python 3.12 o superior**. No hace falta instalar frameworks, Node ni una base de datos aparte para ejecutarla. La única dependencia declarada aporta las zonas horarias, necesarias en Windows.
+Necesitas **JDK 21**. El proyecto incluye Maven Wrapper, así que no tienes que instalar Maven ni un servidor de base de datos. La primera compilación descarga las dependencias.
 
 ```powershell
 git clone https://github.com/Juan2246/Trabajo-Final-Finanzas-.git
 cd Trabajo-Final-Finanzas-
-python -m pip install -r requirements.txt
-python app.py --demo
+.\mvnw.cmd verify
+$env:DEMO="true"
+java -jar target/cuenta-clara.jar
 ```
 
-En Windows también puedes abrir **iniciar.bat** dentro de la carpeta del proyecto.
+En Windows también puedes abrir **iniciar.bat**. En Linux/macOS: `./mvnw verify`, luego `DEMO=true java -jar target/cuenta-clara.jar`.
 
-Abre **http://127.0.0.1:8000**. La terminal muestra las contraseñas generadas para estos accesos:
+Abre **http://127.0.0.1:8000**. Si la base está vacía y `DEMO=true`, se crean datos ficticios y estos accesos:
 
 | Usuario | Perfil |
 | --- | --- |
-| `admin` | Administrador de la plataforma |
+| `admin` | Administrador de plataforma |
 | `tienda` | Dueño del negocio |
 | `cliente` | Cliente de consulta |
 
-Las claves se muestran solo al crear una base vacía. Los datos de ejemplo son ficticios. La base se conserva en `data/cuenta.db`: cerrar el navegador o reiniciar el servidor no borra las operaciones.
+Las claves se generan y se muestran **una sola vez en la terminal**. También puedes definir `ADMIN_PASSWORD` y `DEMO_PASSWORD` antes del primer arranque. No hay una contraseña universal publicada.
 
-Si Windows indica que falta la zona horaria:
+Sin `DEMO=true` se crea únicamente el administrador. Una base existente se conserva: la demostración no la reinicia ni añade registros. Los datos viven en `data/cuenta.db`.
 
-```powershell
-python -m pip install tzdata
-```
-
-Para crear una instalación vacía, usa `python app.py --init` y elige la contraseña del administrador. Después inicia con `python app.py`.
+**Si tienes la versión anterior:** Java abre la misma base y admite las contraseñas existentes. Lee la [guía de migración](docs/MIGRACION_JAVA.md) antes de cambiar de servidor.
 
 ## Qué incluye
 
@@ -64,27 +61,47 @@ La fecha de trabajo se toma del servidor en **America/Lima**. Las fechas de cort
 
 Las compras de períodos ya cerrados se rechazan para conservar el historial. Los cierres recuperados usan el calendario de corte vigente del cliente; los cronogramas de las compras conservan sus propias condiciones. Las consultas históricas reconstruyen pagos por fecha, sin distinguir su hora dentro del mismo día.
 
-El cierre se ejecuta al iniciar el servidor y después cada minuto. Si el servidor estuvo apagado, recupera los cierres pendientes al volver a encenderlo. También puede ejecutarse con `python app.py --close-statements`. Los cierres guardados son fotografías del corte; las consultas del día añaden la mora vigente.
+El cierre se ejecuta al iniciar el servidor y después cada minuto. Si el servidor estuvo apagado, recupera los cierres pendientes al volver a encenderlo. Los cierres guardados son fotografías del corte; las consultas del día añaden la mora vigente.
 
-## Estructura
+## Estructura Java
+
+El backend usa **Spring Boot, Spring Security y Spring Data JPA**. Se organiza por módulo para encontrar juntas las piezas de cada función.
 
 ```text
-app.py                 Servidor, permisos y operaciones
-finance.py             Cálculos con Decimal
-schema.sql             Tablas y relaciones de SQLite
-static/                Interfaz web sin compilación
-tests/                 Pruebas financieras, API y navegador
-docs/                  Fórmulas y arquitectura
-.github/workflows/     Comprobaciones automáticas
+src/main/java/pe/cuentaclara/
+  auth/        Acceso, usuarios, sesiones y contraseñas
+  store/       Tiendas y permisos por negocio
+  customer/    Clientes y condiciones de crédito
+  catalog/     Productos y servicios
+  credit/      Ventas, detalle y cuotas
+  payment/     Cobros completos y sus líneas
+  statement/   Estados de cuenta y cierres
+  finance/     Fórmulas con BigDecimal, sin dependencias de HTTP
+  audit/       Registro de operaciones
+  dashboard/   Consultas del resumen
+  config/      Seguridad, base de datos y serialización
+  shared/      Errores, reloj y conversiones comunes
+  bootstrap/   Datos iniciales opcionales
+src/main/resources/
+  application.yml   Variables de configuración
+  db/schema.sql     14 tablas, claves e índices
+  static/           HTML, CSS, JavaScript, SVG y fuentes locales
+src/test/           Pruebas JUnit y casos financieros de referencia
+tests/              Recorridos de navegador y contenedor
+docs/               Diseño, fórmulas, API y manual
 ```
+
+Ejemplo: en `customer/`, **Customer** es la entidad, **CustomerRepository** consulta la base, **CustomerService** aplica las reglas y **CustomerController** recibe HTTP. Los records **Request/Response** llevan datos entre la API y la interfaz. Las entidades no se devuelven directamente al navegador.
+
+Para empezar a editar, revisa la [arquitectura y recorrido de una venta](docs/ARQUITECTURA.md). El frontend sigue siendo una aplicación web adaptable en HTML/CSS/JavaScript; se sirve desde Spring Boot y no requiere compilación propia.
 
 ## Pruebas y aportes
 
 ```powershell
-python -m unittest discover -s tests -v
+.\mvnw.cmd verify
 ```
 
-GitHub Actions ejecuta los casos financieros, las pruebas de acceso y operaciones, la revisión de sintaxis y un recorrido con Chromium en computadora y celular. Las capturas quedan en el artefacto **pruebas-interfaz** de cada ejecución.
+GitHub Actions ejecuta los casos financieros, las pruebas de acceso y operaciones, la revisión de sintaxis y un recorrido con Chromium en computadora y celular. Las capturas quedan en el artefacto **pruebas-aplicacion** de cada ejecución.
 
 Para trabajar en grupo, cada integrante usa su cuenta y una rama para sus cambios. Los aportes se ven en [Contributors](https://github.com/Juan2246/Trabajo-Final-Finanzas-/graphs/contributors) cuando llegan a `main`. El correo del commit debe estar vinculado a la cuenta correcta. Evitemos subir bases reales, contraseñas o datos personales.
 
@@ -103,15 +120,17 @@ Las variables disponibles están en [.env.example](.env.example). El servidor le
 
 En un hosting con disco persistente, ejecuta el contenedor detrás de un proxy HTTPS y configura `SECURE_COOKIES=1`. Mantén `DB_PATH` en el volumen persistente y haz respaldos con la API de backup de SQLite. La base de datos no va en Git.
 
-El servidor incluido sirve para la entrega académica y uso local. Para exponerlo a usuarios reales, el operador debe configurar HTTPS, copias de seguridad, gestión de accesos y revisar la política de datos con los responsables del negocio. La app no calcula límites legales de tasas ni sustituye asesoría legal.
+La configuración incluida usa SQLite con un solo escritor y una sola instancia de aplicación por archivo de base. Para exponerlo a usuarios reales, el operador debe configurar HTTPS, copias de seguridad, gestión de accesos y revisar la política de datos con los responsables del negocio. La app no calcula límites legales de tasas ni sustituye asesoría legal.
 
 Más detalles en [Arquitectura](docs/ARQUITECTURA.md) y [Finanzas](docs/FINANZAS.md).
 
-## Referencias de interfaz
+## Diseño y referencias
 
-El acceso incluye un búho en SVG: sigue el puntero y se tapa los ojos cuando se muestra la contraseña. Respeta la preferencia de movimiento reducido. Logo y controles usan trazos de [Lucide](https://github.com/lucide-icons/lucide), con su [licencia incluida](static/vendor/LUCIDE-LICENSE.txt). La tipografía Public Sans se sirve localmente.
+La navegación usa verde profundo; el resumen destaca el saldo y los vencimientos, seguido de una lista de cobros. En celular, cada pendiente mantiene a la vista su importe y su acción. El acceso conserva el búho que se tapa los ojos al mostrar la contraseña, con soporte de movimiento reducido.
 
-La organización del espacio de trabajo toma referencias de [shadcn/ui Dashboard](https://ui.shadcn.com/examples/dashboard); la interacción del personaje se inspira en los avatares de acceso de [Darin Senneff](https://codepen.io/dsenneff). La ilustración y los componentes están implementados en SVG, HTML, CSS y JavaScript sin copiar código de esas demostraciones.
+Se revisaron [Square](https://squareup.com/us/en/point-of-sale), [Mercury](https://demo.mercury.com/) y [Pennylane](https://www.pennylane.com/fr/logiciel-tresorerie) como referencias de jerarquía, navegación y lectura de importes. La interacción del personaje toma como referencia los [avatares de Darin Senneff](https://codepen.io/dsenneff). No se utilizan sus marcas ni se copia su código.
+
+Los controles usan [Lucide](https://github.com/lucide-icons/lucide), con [licencia incluida](src/main/resources/static/vendor/LUCIDE-LICENSE.txt). El símbolo de Cuenta Clara representa un cuaderno. Manrope y Public Sans se sirven localmente con sus licencias en `static/fonts/`.
 
 ## Documentación del proyecto
 

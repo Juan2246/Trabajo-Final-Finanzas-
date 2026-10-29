@@ -1,98 +1,85 @@
-# Cómo está organizada Cuenta Clara
+# Arquitectura de Cuenta Clara
 
-La aplicación reemplaza el cuaderno de fiados del negocio. La información vive en una base SQLite y el navegador se comunica con el servidor mediante una API JSON del mismo origen.
+Cuenta Clara es una aplicación web con backend Java 21 y Spring Boot 3.5. El navegador y la API se sirven desde el mismo origen. El frontend usa HTML, CSS y JavaScript; funciona en computadora y celular, sin Flutter ni instalación obligatoria.
 
-## Componentes
+## Recorrido de una operación
 
 ```mermaid
 flowchart LR
-    U[Dueño / cliente / administrador] --> B[Navegador: HTML, CSS y JavaScript]
-    B -->|Cookie de sesión + JSON| S[Servidor Python / WSGI]
-    S --> P[Permisos y validaciones]
-    P --> F[Motor financiero con Decimal]
-    P --> D[(SQLite)]
-    P --> A[Registro de operaciones]
+    B[Navegador] --> S[Spring Security: sesión y CSRF]
+    S --> C[Controller + Request validado]
+    C --> V[Service: permisos y transacción]
+    V --> F[FinancialEngine: BigDecimal]
+    V --> R[Repository: Spring Data JPA]
+    R --> E[Entidades y convertidores]
+    E --> D[(SQLite)]
+    V --> A[Auditoría dentro de la transacción]
 ```
 
-| Archivo | Para qué sirve |
-| --- | --- |
-| `app.py` | API, sesiones, validaciones, acceso a datos y arranque del servidor. |
-| `finance.py` | Conversión de tasas, gracia, cuotas y mora. |
-| `schema.sql` | Tablas, relaciones e índices de la base de datos. |
-| `static/index.html` | Estructura de la interfaz. |
-| `static/app.js` | Navegación, formularios y consultas al servidor. |
-| `static/styles.css` | Apariencia, adaptación a celulares e impresión. |
-| `static/fonts/` | Public Sans y su licencia SIL Open Font License. Se sirve desde la propia aplicación. |
-| `tests/` | Pruebas del motor financiero y de las operaciones del servidor. |
+Una venta entra por `CreditController`. `SaleRequest` valida su formato. `CreditService` identifica la tienda desde la sesión, busca el cliente y los productos, calcula el importe con precios guardados y consulta `FinancialEngine`. Después comprueba el crédito disponible y, si corresponde, que la simulación aceptada siga vigente. La venta, los productos vendidos, las cuotas y la auditoría se guardan dentro de **una misma transacción**. Un error revierte todo.
 
-No se necesita un proceso de compilación para el frontend. La lógica de negocio y los cálculos definitivos se ejecutan en el servidor.
+## Cómo encontrar cada parte
 
-## Usuarios y separación de tiendas
+Los paquetes se agrupan por función. Cada módulo contiene su entidad, repositorio, servicio, controlador y DTOs cuando los necesita. Es la [organización por dominio sugerida por Spring Boot](https://docs.spring.io/spring-boot/reference/using/structuring-your-code.html).
 
-- **Administrador de plataforma:** registra y desactiva tiendas; administra el acceso a la plataforma.
-- **Administrador del negocio:** administra sus clientes, catálogo, ventas y pagos.
-- **Cliente:** consulta exclusivamente su propia cuenta.
+| Módulo | Entidades principales | Responsabilidad |
+| --- | --- | --- |
+| `auth` | UserAccount, SessionToken, LoginChallenge, LoginAttempt | Acceso, contraseñas y sesiones |
+| `store` | Store | Tiendas y alcance de permisos |
+| `customer` | Customer | Datos personales y acuerdo de crédito |
+| `catalog` | Product | Catálogo de productos y servicios |
+| `credit` | CreditSale, SaleItem, Installment | Compras y cronogramas |
+| `payment` | Payment, PaymentLine | Liquidación completa y mora cobrada |
+| `statement` | ClosedStatement | Consultas y fotografías del cierre |
+| `audit` | AuditEvent | Usuario, acción y fecha de cada movimiento |
+| `finance` | Sin persistencia | Tasas, calendario comercial, gracia y cuotas |
+| `dashboard` | Sin entidades propias | Datos del resumen según perfil |
+| `config` / `shared` | Sin entidades propias | Configuración, reloj, errores y convertidores |
 
-El identificador de tienda de la sesión delimita las consultas. Cambiar un ID en una petición no concede acceso a otra tienda. Los clientes tampoco pueden registrar ventas o pagos.
+Ejemplo concreto en `src/main/java/pe/cuentaclara/customer/`:
 
-Las bajas son lógicas: desactivar un registro impide nuevas operaciones sin borrar su historia. Las ventas guardan una copia de las condiciones financieras y de los precios utilizados.
+- `Customer.java`: entidad JPA que representa la tabla `customers`.
+- `CustomerRepository.java`: acceso mediante Spring Data JPA.
+- `CustomerRequest.java`: campos y validaciones de entrada.
+- `CustomerResponse.java`: datos que puede recibir la interfaz.
+- `CustomerService.java`: consentimiento, condiciones, usuario y auditoría.
+- `CustomerController.java`: rutas y autorización del perfil.
 
-## Datos principales
+Las dependencias se reciben por constructor y se guardan en campos `final`. No se utiliza Lombok. Las relaciones JPA son diferidas y `open-in-view=false`: los servicios construyen DTOs dentro de sus transacciones. No se serializan entidades ni contraseñas.
 
-```mermaid
-erDiagram
-    stores ||--o{ customers : registra
-    stores ||--o{ products : ofrece
-    stores ||--o{ sales : realiza
-    customers ||--o{ sales : compra
-    sales ||--|{ sale_items : contiene
-    products ||--o{ sale_items : identifica
-    sales ||--|{ dues : genera
-    customers ||--o{ payments : paga
-    payments ||--|{ payment_lines : detalla
-    dues ||--o| payment_lines : cancela
-    users ||--o{ sessions : inicia
-    users ||--o{ audit : registra
-```
+## Dinero, fechas y persistencia
 
-Los importes se almacenan como texto decimal para conservar exactamente los centavos. Los cálculos usan `Decimal`; los montos mostrados por el navegador no sustituyen las validaciones del servidor.
+`FinancialEngine` usa `BigDecimal`, precisión de 36 dígitos para factores y `HALF_UP` a dos decimales para importes. `big-math` calcula potencias decimales. Ningún cálculo definitivo pasa por `double`. Las fórmulas están en [FINANZAS.md](FINANZAS.md).
 
-## Seguridad aplicada
+Los convertidores de `shared` guardan importes decimales como texto e instantes locales en ISO. Esto conserva las 14 tablas y los valores de la versión anterior. `ddl-auto=none` evita que Hibernate cambie el esquema automáticamente. El DDL idempotente vive en `src/main/resources/db/schema.sql`.
 
-- Contraseñas derivadas con sal individual; no se guardan contraseñas en texto.
-- Sesiones con vencimiento y cookies HttpOnly.
-- Token CSRF obligatorio para las operaciones autenticadas que cambian información.
-- Desafío de verificación en el acceso y control de intentos fallidos.
-- Consultas SQL parametrizadas y comprobaciones de permisos en el servidor.
-- Registro de operaciones para identificar usuario, acción y fecha.
-- Consentimiento de tratamiento de datos versionado y registrado al crear el cliente.
+SQLite tiene un escritor. El pool contiene **una conexión** para serializar transacciones completas de esta instancia: una compra no puede comprobar un saldo anterior mientras otra lo consume. Las peticiones HTTP pueden llegar juntas y esperan su turno. Esta configuración es adecuada para la entrega y comercios pequeños; no es una arquitectura para varias réplicas. Para otra escala, cambiar a PostgreSQL implica una migración del esquema, estrategia de bloqueo y nuevas pruebas, no solo cambiar una URL.
 
-Antes de usar datos reales, el negocio debe definir sus propios plazos de conservación, procedimientos de atención de solicitudes y política de privacidad. El texto informativo incluido es una base funcional para el proyecto académico.
+Las ventas conservan precios y condiciones pactadas. Los cierres se ejecutan al arrancar y cada minuto mediante `StatementClosingJob`; se recuperan los períodos pendientes si el servidor estuvo apagado. Un cierre ya guardado no se reemplaza. El reloj usa `America/Lima` y se sustituye por un reloj fijo en pruebas. Los días 30/31 se ajustan al último día de un mes corto y se recuperan después.
 
-## Fechas y dinero
+## Acceso y seguridad
 
-Las fechas de corte y pago admiten días del 1 al 31. En meses cortos se ajustan al último día disponible; después se recupera el día pactado. La base financiera es comercial de 30 días por mes. Cada crédito conserva su moneda: no se convierten soles a dólares ni se mezclan sus totales. El documento [FINANZAS.md](FINANZAS.md) explica las fórmulas y supuestos.
+`SecurityConfig` establece rutas públicas, cabeceras, cookies y CSRF. `SessionAuthenticationFilter` identifica al usuario por `cc_session`; `SessionService` vuelve a comprobar que el usuario y su tienda sigan activos. `@PreAuthorize` controla los perfiles y `StoreAccessService` limita cada operación a su negocio o a la cuenta del cliente.
 
-## Desarrollo y cambios
+- Contraseñas nuevas con PBKDF2-HMAC-SHA256, sal individual y 600 000 iteraciones. Las claves anteriores se verifican y se actualiza su derivación al iniciar sesión correctamente.
+- Sesiones persistidas de ocho horas, cookie HttpOnly y SameSite=Lax; `SECURE_COOKIES=true` al servir mediante HTTPS.
+- Token CSRF en operaciones autenticadas. El login usa un desafío aritmético de cinco minutos y un solo uso; bloqueo temporal por usuario e IP ante fallos repetidos.
+- Cierre de sesión y revocación de otras sesiones al cambiar la contraseña.
+- Consultas parametrizadas, validación de DTOs, errores centralizados en `ApiExceptionHandler` y comprobación de precios/moneda en el servidor.
+- Las bajas son lógicas: conservan operaciones e historial. El consentimiento incluye fecha y versión.
 
-1. Crear una rama para el cambio.
-2. Probar el flujo afectado y ejecutar `python -m unittest discover -s tests -v`.
-3. Revisar el diff antes de subirlo.
-4. Integrar a `main` cuando los controles automáticos estén correctos.
+La protección CSRF usa [Spring Security](https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html); las transacciones siguen el [modelo declarativo de Spring](https://spring.io/guides/gs/managing-transactions/). El desafío aritmético no se presenta como MFA ni como verificación de correo.
 
-Cada integrante debe usar su propia cuenta y un correo vinculado a GitHub para que los commits se atribuyan correctamente.
+## Frontend y desarrollo
+
+`src/main/resources/static/app.js` gestiona las vistas y los formularios; `styles.css` define escritorio, celular e impresión. Iconos, SVG y fuentes se sirven localmente. Los importes mostrados con JavaScript son informativos: el backend recalcula al confirmar.
+
+Para un cambio de regla, empieza por el servicio y su prueba. Para un campo, revisa entidad, DTO, esquema y formulario. Usa `./mvnw verify` o `.\mvnw.cmd verify` antes de integrar. Los casos financieros están en `src/test/`; el recorrido de Chromium en `tests/browser_smoke.py`.
 
 ## Ejecución y respaldo
 
-El servidor usa la biblioteca estándar de Python 3.12 y el paquete tzdata para garantizar las zonas horarias en Windows y contenedores. Instala requirements.txt antes de arrancar. El arranque, la demostración y las variables de configuración están en el README.
+El README incluye el arranque con Maven Wrapper y Docker. `.env.example` enumera variables; `.env` no se carga automáticamente. Una base existente nunca se reinicia al activar la demostración.
 
-Para Docker:
+Ejecuta una sola instancia por archivo SQLite. Conserva `DB_PATH` en disco persistente. Para un respaldo en caliente, usa la API de backup de SQLite o el comando `.backup` de su herramienta; una copia directa del archivo mientras hay escrituras no equivale a un respaldo consistente. Detén el proceso antes de restaurar. La [guía de migración](MIGRACION_JAVA.md) explica el cambio desde la versión anterior.
 
-```sh
-docker build -t cuenta-clara .
-docker run --rm -p 8000:8000 --env-file .env -e HOST=0.0.0.0 -e DB_PATH=/data/cuenta.db -v cuenta-clara-data:/data cuenta-clara
-```
-
-Crear primero `.env` a partir de `.env.example` y definir una contraseña de administrador segura. El volumen mantiene la base aunque se elimine el contenedor. Para un respaldo consistente con el servidor activo, usar la API de respaldo de SQLite; también se puede detener el servidor y copiar la base.
-
-Para exponerla en Internet se necesita HTTPS mediante un proxy, configurar `SECURE_COOKIES=1`, limitar peticiones y establecer respaldos. El servidor incluido permite ejecutar y presentar el proyecto; un despliegue de producción debe dimensionarse y revisarse para su entorno.
+Para publicar se requiere proxy HTTPS, cookies seguras y una política operativa de copias y accesos. La base, las claves y los datos personales quedan fuera de Git.

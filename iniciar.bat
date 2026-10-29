@@ -1,21 +1,27 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-python --version >nul 2>&1
+set "JAVA_COMMAND=java"
+if defined JAVA_HOME set "JAVA_COMMAND=%JAVA_HOME%\bin\java.exe"
+"%JAVA_COMMAND%" -version >nul 2>&1
 if errorlevel 1 (
-  echo Necesitas instalar Python 3.12 o superior y marcar "Add Python to PATH".
+  echo Instala un JDK 21 y configura JAVA_HOME antes de iniciar.
+  echo Guia: https://adoptium.net/installation/
   pause
   exit /b 1
 )
-python -m pip install -r requirements.txt
+echo Preparando Cuenta Clara. La primera vez se descargan las dependencias.
+call mvnw.cmd -q -DskipTests package
 if errorlevel 1 (
-  echo No se pudieron instalar las zonas horarias. Revisa tu conexion.
+  echo No se pudo compilar. Revisa que uses JDK 21 y tengas conexion a Internet.
   pause
   exit /b 1
 )
+if not defined DEMO set "DEMO=true"
 echo.
-echo La app se abrira en http://127.0.0.1:8000
-echo Deja esta ventana abierta mientras uses la app.
+echo Abre http://127.0.0.1:8000 en tu navegador.
+echo Deja esta ventana abierta. Ctrl+C detiene el servidor.
+echo Los datos existentes se conservan.
 echo.
-python app.py --demo
+"%JAVA_COMMAND%" -jar target\cuenta-clara.jar
 pause

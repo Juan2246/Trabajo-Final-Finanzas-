@@ -64,14 +64,14 @@ Distribución propuesta: acceso/datos; motor/ventas; cierres/cobros; interfaz/pr
 
 ## Base SQL
 
-SQLite permite una entrega portable sin otro servidor. Se usan claves, referencias, restricciones, índices y transacciones SQL. Dinero en texto decimal y cálculo en Decimal evitan errores binarios; fechas ISO y booleanos 0/1 siguen los tipos disponibles en [SQLite](https://www.sqlite.org/datatype3.html).
+SQLite permite una entrega portable sin otro servidor. Se usan claves, referencias, restricciones, índices y transacciones SQL. Dinero en texto decimal y cálculo en BigDecimal evitan errores binarios; fechas ISO y booleanos 0/1 siguen los tipos disponibles en [SQLite](https://www.sqlite.org/datatype3.html).
 
-No se declara compatibilidad completa con MySQL/PostgreSQL ni se presenta SQLite como una norma ISO. El DDL real es `schema.sql`; migrar requiere adaptar tipos, transacciones y pruebas.
+No se declara compatibilidad completa con MySQL/PostgreSQL ni se presenta SQLite como una norma ISO. El DDL real es `src/main/resources/db/schema.sql`; migrar requiere adaptar tipos, transacciones y pruebas.
 
 ## Bibliografía técnica complementaria
 
-- [Python: Decimal](https://docs.python.org/3/library/decimal.html).
-- [Python: sqlite3](https://docs.python.org/3/library/sqlite3.html).
-- [Lucide](https://github.com/lucide-icons/lucide), licencia incluida en `static/vendor/`.
-- [Public Sans](https://github.com/uswds/public-sans), licencia incluida en `static/fonts/`.
+- [Java: BigDecimal](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/math/BigDecimal.html).
+- [Spring Data JPA](https://spring.io/guides/gs/accessing-data-jpa/).
+- [Lucide](https://github.com/lucide-icons/lucide), licencia incluida en `src/main/resources/static/vendor/`.
+- [Public Sans](https://github.com/uswds/public-sans), licencia incluida en `src/main/resources/static/fonts/`.
 - Enunciado SI642 entregado por el grupo, fuente académica principal del alcance.

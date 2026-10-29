@@ -2,7 +2,7 @@
 
 ## Preparar el acceso
 
-Ejecuta `python app.py --demo` después de instalar `requirements.txt`. Abre http://127.0.0.1:8000. Una base nueva muestra las credenciales generadas en la terminal; no hay contraseñas universales publicadas. Reiniciar conserva la base existente.
+Con JDK 21 instalado, abre `iniciar.bat` en Windows. También puedes compilar con Maven Wrapper y ejecutar `java -jar target/cuenta-clara.jar` con `DEMO=true`. Abre http://127.0.0.1:8000. Una base nueva muestra las credenciales generadas en la terminal; no hay contraseñas universales publicadas. Reiniciar conserva la base existente.
 
 Escribe usuario y clave y resuelve la suma. El ojo muestra u oculta la contraseña; el búho se cubre los ojos al mostrarla. La animación es una señal visual, no un control de seguridad. Cierra sesión al terminar en un equipo compartido.
 
@@ -38,7 +38,7 @@ El acceso que entrega el negocio permite revisar el resumen, cronograma e inform
 | Diferencia entre cierre y consulta actual | El cierre conserva su fecha; la consulta actual incluye mora posterior. |
 | Cambio de moneda bloqueado | Primero debe liquidarse la deuda; no se convierten monedas. |
 | Demasiados intentos de acceso | Espera el bloqueo de 15 minutos y genera otra comprobación. |
-| Cambios descargados no visibles | Reinicia el servidor si cambió Python y recarga el navegador. |
+| Cambios descargados no visibles | Detén el servidor, recompila con Maven Wrapper, reinicia el JAR y recarga el navegador. |
 
 ## Guion de exposición: seis minutos
 

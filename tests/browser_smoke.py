@@ -153,19 +153,30 @@ def business_flows(page, context, url):
 
 
 def dashboard_flows(page, context, url):
+    page.locator('a[data-page="customers"]').click()
+    expect(page).to_have_url(url + '/#customers')
+    page.locator('a[data-page="products"]').click()
+    page.go_back()
+    expect(page.locator('a[data-page="customers"]')).to_have_attribute('aria-current', 'page')
+    page.reload(wait_until='networkidle')
+    expect(page.locator('a[data-page="customers"]')).to_have_attribute('aria-current', 'page')
+    page.locator('.skip').focus()
+    page.keyboard.press('Enter')
+    expect(page.locator('a[data-page="customers"]')).to_have_attribute('aria-current', 'page')
+    page.locator('a[data-page="dashboard"]').click()
     data = api_data(context, url)
     pending = [d for d in data["dues"] if not d["payment_id"] and d["currency"] == "PEN"]
     due = [d for d in pending if d["due_date"] <= data["today"]]
-    page.locator('[data-filter="due"]').click()
+    page.locator('.ledger-tab[data-filter="due"]').click()
     expect(page.locator('.collection-table tbody tr')).to_have_count(min(8, len(due)))
-    expect(page.locator('[data-filter="due"]')).to_have_attribute("aria-pressed", "true")
-    page.locator('[data-filter="upcoming"]').click()
+    expect(page.locator('.ledger-tab[data-filter="due"]')).to_have_attribute("aria-pressed", "true")
+    page.locator('.ledger-tab[data-filter="upcoming"]').click()
     expect(page.locator('.collection-table tbody tr')).to_have_count(min(8, len(pending) - len(due)))
     page.locator('#metric-currency').select_option('USD')
     expect(page.locator('.collection-table tbody tr')).to_have_count(0)
-    expect(page.locator('.main-metric strong')).to_contain_text('0.00')
+    expect(page.locator('.portfolio-balance > strong')).to_contain_text('0.00')
     page.locator('#metric-currency').select_option('PEN')
-    page.locator('[data-filter="due"]').click()
+    page.locator('.ledger-tab[data-filter="due"]').click()
     customer_id = page.locator('[data-action="collect-customer"]').first.get_attribute('data-id')
     quote = mutate_with_ui(page, '/api/payments/preview',
         lambda: page.locator('[data-action="collect-customer"]').first.click())
@@ -173,7 +184,7 @@ def dashboard_flows(page, context, url):
     assert quote['dues'] and float(quote['amount']) > 0
     expect(page.locator('#payment-preview .payment-total')).to_be_visible()
     page.locator('[data-page="dashboard"]').first.click()
-    page.locator('[data-filter="all"]').click()
+    page.locator('.ledger-tab[data-filter="all"]').click()
 
 
 def platform_and_customer(browser, url):
@@ -247,12 +258,12 @@ def main():
         url = "http://127.0.0.1:" + str(port)
         env = dict(os.environ, DB_PATH=str(Path(temp) / "browser.db"),
                    HOST="127.0.0.1", PORT=str(port),
-                   ADMIN_PASSWORD="AdminSegura2026!", DEMO_PASSWORD="PruebaSegura2026!")
+                   ADMIN_PASSWORD="AdminSegura2026!", DEMO_PASSWORD="PruebaSegura2026!", DEMO="true")
         with open(ARTIFACTS / "server.log", "w", encoding="utf-8") as logfile:
-            server = subprocess.Popen([sys.executable, "app.py", "--demo"], cwd=ROOT,
+            server = subprocess.Popen([os.environ.get("JAVA_EXE", "java"), "-jar", str(ROOT / "target/cuenta-clara.jar")], cwd=ROOT,
                                       env=env, stdout=logfile, stderr=subprocess.STDOUT)
             try:
-                for _ in range(100):
+                for _ in range(200):
                     if server.poll() is not None:
                         raise AssertionError("El servidor terminó antes de iniciar. Revisar server.log.")
                     try:

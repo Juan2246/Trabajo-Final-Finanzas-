@@ -1,6 +1,6 @@
 # Algoritmos y flujo del negocio
 
-El pseudocódigo siguiente describe el cálculo; los diagramas posteriores describen las actividades. Implementación: `finance.py` y `app.py`.
+El pseudocódigo siguiente describe el cálculo; los diagramas posteriores describen las actividades. Implementación: `finance/FinancialEngine.java` y los servicios de `credit`, `payment` y `statement`.
 
 ## Factor de acumulación
 

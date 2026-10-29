@@ -1,0 +1,38 @@
+server:
+  address: ${HOST:127.0.0.1}
+  port: ${PORT:8000}
+  error:
+    include-message: never
+    include-stacktrace: never
+spring:
+  application:
+    name: cuenta-clara
+  jpa:
+    open-in-view: false
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: none
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    deserialization:
+      fail-on-unknown-properties: false
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-cache: true
+  threads:
+    virtual:
+      enabled: true
+app:
+  database-path: ${DB_PATH:data/cuenta.db}
+  secure-cookies: ${SECURE_COOKIES:false}
+  demo: ${DEMO:false}
+  initialize: ${INITIALIZE:true}
+  closing-enabled: ${CLOSING_ENABLED:true}
+  admin-user: ${ADMIN_USER:admin}
+  admin-password: ${ADMIN_PASSWORD:}
+  demo-password: ${DEMO_PASSWORD:}
+logging:
+  level:
+    org.hibernate.orm.deprecation: ERROR

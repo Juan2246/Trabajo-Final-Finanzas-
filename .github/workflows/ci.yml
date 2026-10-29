@@ -15,40 +15,44 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Compilar y probar reglas, permisos y persistencia
+        run: ./mvnw -B verify
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Instalar zonas horarias
-        run: python -m pip install -r requirements.txt
-      - name: Revisar sintaxis
+      - name: Revisar JavaScript
         run: |
-          python -m compileall -q app.py finance.py tests
-          node --check static/app.js
-          node --check static/icons.js
-          node --check static/mascot.js
-      - name: Probar cálculos y API
-        run: python -m unittest discover -s tests -v
+          node --check src/main/resources/static/app.js
+          node --check src/main/resources/static/icons.js
+          node --check src/main/resources/static/mascot.js
       - name: Instalar navegador para pruebas
         run: |
-          python -m pip install playwright==1.64.1
+          python -m pip install -r requirements-dev.txt
           python -m playwright install --with-deps chromium
       - name: Probar interfaz en escritorio y celular
         run: python tests/browser_smoke.py
-      - name: Guardar capturas y registro de la prueba
+      - name: Guardar evidencias
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pruebas-interfaz
-          path: test-results/
+          name: pruebas-aplicacion
+          path: |
+            test-results/
+            target/surefire-reports/
           if-no-files-found: ignore
           retention-days: 7
 
   contenedor:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Construir contenedor
@@ -56,22 +60,7 @@ jobs:
       - name: Comprobar arranque y persistencia
         run: |
           docker run -d --name cuenta-clara-ci -p 8000:8000 -v cuenta-clara-test:/data -e ADMIN_PASSWORD=PruebaSegura2026 cuenta-clara:test
-          python - <<'PY'
-          import json, time, urllib.request
-          for attempt in range(40):
-              try:
-                  with urllib.request.urlopen("http://127.0.0.1:8000/api/health", timeout=2) as response:
-                      assert json.load(response)["ok"] is True
-                      break
-              except Exception:
-                  time.sleep(1)
-          else:
-              raise SystemExit("El contenedor no respondió.")
-          PY
-          docker exec cuenta-clara-ci python -c "import sqlite3; db=sqlite3.connect('/data/cuenta.db'); assert db.execute('select count(*) from users').fetchone()[0] == 1"
-          docker restart cuenta-clara-ci
-          sleep 3
-          docker exec cuenta-clara-ci python -c "import sqlite3; db=sqlite3.connect('/data/cuenta.db'); assert db.execute('select count(*) from users').fetchone()[0] == 1"
+          python tests/container_smoke.py
       - name: Mostrar registro del contenedor
         if: always()
         run: docker logs cuenta-clara-ci
