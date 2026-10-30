@@ -69,19 +69,19 @@ El backend usa **Spring Boot, Spring Security y Spring Data JPA**. Se organiza p
 
 ```text
 src/main/java/pe/cuentaclara/
-  auth/        Acceso, usuarios, sesiones y contraseñas
-  store/       Tiendas y permisos por negocio
-  customer/    Clientes y condiciones de crédito
-  catalog/     Productos y servicios
-  credit/      Ventas, detalle y cuotas
-  payment/     Cobros completos y sus líneas
-  statement/   Estados de cuenta y cierres
-  finance/     Fórmulas con BigDecimal, sin dependencias de HTTP
-  audit/       Registro de operaciones
-  dashboard/   Consultas del resumen
+  acceso/      Acceso, usuarios, sesiones y contraseñas
+  tiendas/     Tiendas y permisos por negocio
+  clientes/    Clientes y condiciones de crédito
+  catalogo/    Productos y servicios
+  creditos/    Ventas, detalle y cuotas
+  pagos/       Cobros completos y sus líneas
+  estados/     Estados de cuenta y cierres
+  finanzas/    Fórmulas con BigDecimal, sin dependencias de HTTP
+  auditoria/   Registro de operaciones
+  resumen/     Consultas del resumen
   config/      Seguridad, base de datos y serialización
-  shared/      Errores, reloj y conversiones comunes
-  bootstrap/   Datos iniciales opcionales
+  comun/       Errores, reloj y conversiones comunes
+  inicio/      Datos iniciales opcionales
 src/main/resources/
   application.yml   Variables de configuración
   db/schema.sql     14 tablas, claves e índices
@@ -91,7 +91,9 @@ tests/              Recorridos de navegador y contenedor
 docs/               Diseño, fórmulas, API y manual
 ```
 
-Ejemplo: en `customer/`, **Customer** es la entidad, **CustomerRepository** consulta la base, **CustomerService** aplica las reglas y **CustomerController** recibe HTTP. Los records **Request/Response** llevan datos entre la API y la interfaz. Las entidades no se devuelven directamente al navegador.
+Ejemplo: en `clientes/`, **Cliente** es la entidad, **ClienteRepository** consulta la base, **ClienteService** aplica las reglas y **ClienteController** recibe HTTP. Los records **ClienteEntradaDTO** y **ClienteSalidaDTO** llevan datos entre la API y la interfaz. Las entidades no se devuelven directamente al navegador.
+
+Los nombres del negocio y sus métodos están en español: `limiteCredito`, `crear`, `actualizar`, `simular` y `calcularPlanPagos`. Conservamos los términos técnicos `Controller`, `Service`, `Repository` y `DTO`, además de las convenciones de Java y Spring (`get`, `set`, `findBy`, etc.).
 
 Para empezar a editar, revisa la [arquitectura y recorrido de una venta](docs/ARQUITECTURA.md). El frontend sigue siendo una aplicación web adaptable en HTML/CSS/JavaScript; se sirve desde Spring Boot y no requiere compilación propia.
 

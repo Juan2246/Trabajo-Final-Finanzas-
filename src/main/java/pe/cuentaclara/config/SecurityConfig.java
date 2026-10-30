@@ -12,9 +12,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
-import pe.cuentaclara.auth.SessionAuthenticationFilter;
-import pe.cuentaclara.auth.SessionCsrfTokenRepository;
-import pe.cuentaclara.auth.SessionService;
+import pe.cuentaclara.acceso.AutenticacionSesionFilter;
+import pe.cuentaclara.acceso.SesionCsrfTokenRepository;
+import pe.cuentaclara.acceso.SesionService;
 
 import java.util.Map;
 
@@ -22,7 +22,7 @@ import java.util.Map;
 @EnableMethodSecurity
 public class SecurityConfig {
     @Bean
-    SecurityFilterChain security(HttpSecurity http, SessionService sessions, ObjectMapper json)
+    SecurityFilterChain security(HttpSecurity http, SesionService sesiones, ObjectMapper json)
             throws Exception {
         return http.sessionManagement(
                         config -> config.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -30,16 +30,17 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
                 .requestCache(AbstractHttpConfigurer::disable)
-                .addFilterBefore(new SessionAuthenticationFilter(sessions), CsrfFilter.class)
+                .addFilterBefore(new AutenticacionSesionFilter(sesiones), CsrfFilter.class)
                 .csrf(
                         config ->
-                                config.csrfTokenRepository(new SessionCsrfTokenRepository())
+                                config.csrfTokenRepository(new SesionCsrfTokenRepository())
                                         .csrfTokenRequestHandler(
                                                 new CsrfTokenRequestAttributeHandler())
                                         .ignoringRequestMatchers("/api/login"))
                 .authorizeHttpRequests(
-                        auth ->
-                                auth.requestMatchers("/api/health", "/api/challenge", "/api/login")
+                        acceso ->
+                                acceso.requestMatchers(
+                                                "/api/health", "/api/challenge", "/api/login")
                                         .permitAll()
                                         .requestMatchers("/api/**")
                                         .authenticated()
@@ -48,7 +49,7 @@ public class SecurityConfig {
                 .exceptionHandling(
                         config ->
                                 config.authenticationEntryPoint(
-                                                (request, response, error) -> {
+                                                (solicitud, response, error) -> {
                                                     response.setStatus(401);
                                                     response.setContentType(
                                                             "application/json;charset=UTF-8");
@@ -60,7 +61,7 @@ public class SecurityConfig {
                                                                             + " continuar."));
                                                 })
                                         .accessDeniedHandler(
-                                                (request, response, error) -> {
+                                                (solicitud, response, error) -> {
                                                     response.setStatus(403);
                                                     response.setContentType(
                                                             "application/json;charset=UTF-8");

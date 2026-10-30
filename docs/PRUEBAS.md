@@ -85,8 +85,8 @@ Una prueba fallida bloquea la integración hasta corregirla o justificar un camb
 
 | Suite | Casos | Comprobación |
 | --- | --- | --- |
-| FinancialEngineTest | 184 | 180 planes completos de referencia y cuatro casos adicionales de calendario, tasa cero, validación y mora |
-| PasswordServiceTest | 3 | Formato anterior, sales aleatorias independientes y requisitos de contraseña |
+| MotorFinancieroTest | 184 | 180 planes completos de referencia y cuatro casos adicionales de calendario, tasa cero, validación y mora |
+| ContrasenaServiceTest | 3 | Formato anterior, sales aleatorias independientes y requisitos de contraseña |
 | ApiIntegrationTest | 20 | Autenticación, CSRF, permisos, aislamiento, consentimiento, validaciones, simulación, atomicidad, pagos, concurrencia, historia y cierres |
 
 Total: **207 pruebas JUnit**, además del recorrido en Chromium y la prueba del contenedor. Los resultados concretos se consultan en `target/surefire-reports/` y en GitHub Actions. El fixture `legacy-finance-cases.json` contiene resultados previos a la migración; no se regenera con el motor bajo prueba.

@@ -1,0 +1,54 @@
+package pe.cuentaclara.acceso;
+
+import jakarta.persistence.*;
+
+/** Sesión con vencimiento y token CSRF. */
+@Entity
+@Table(name = "sessions")
+public class Sesion {
+    @Id
+    @Column(name = "token")
+    private String token;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private Usuario usuario;
+
+    @Column(name = "csrf")
+    private String csrf;
+
+    @Column(name = "expires_at")
+    private Long venceEn;
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
+
+    public String getCsrf() {
+        return csrf;
+    }
+
+    public void setCsrf(String csrf) {
+        this.csrf = csrf;
+    }
+
+    public Long getVenceEn() {
+        return venceEn;
+    }
+
+    public void setVenceEn(Long venceEn) {
+        this.venceEn = venceEn;
+    }
+}

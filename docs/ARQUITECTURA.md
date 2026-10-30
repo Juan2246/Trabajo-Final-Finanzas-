@@ -7,16 +7,16 @@ Cuenta Clara es una aplicación web con backend Java 21 y Spring Boot 3.5. El na
 ```mermaid
 flowchart LR
     B[Navegador] --> S[Spring Security: sesión y CSRF]
-    S --> C[Controller + Request validado]
+    S --> C[Controller + DTO de entrada validado]
     C --> V[Service: permisos y transacción]
-    V --> F[FinancialEngine: BigDecimal]
+    V --> F[MotorFinanciero: BigDecimal]
     V --> R[Repository: Spring Data JPA]
     R --> E[Entidades y convertidores]
     E --> D[(SQLite)]
     V --> A[Auditoría dentro de la transacción]
 ```
 
-Una venta entra por `CreditController`. `SaleRequest` valida su formato. `CreditService` identifica la tienda desde la sesión, busca el cliente y los productos, calcula el importe con precios guardados y consulta `FinancialEngine`. Después comprueba el crédito disponible y, si corresponde, que la simulación aceptada siga vigente. La venta, los productos vendidos, las cuotas y la auditoría se guardan dentro de **una misma transacción**. Un error revierte todo.
+Una venta entra por `CreditoController`. `VentaEntradaDTO` valida su formato. `CreditoService` identifica la tienda desde la sesión, busca el cliente y los productos, calcula el importe con precios guardados y consulta `MotorFinanciero`. Después comprueba el crédito disponible y, si corresponde, que la simulación aceptada siga vigente. La venta, los productos vendidos, las cuotas y la auditoría se guardan dentro de **una misma transacción**. Un error revierte todo.
 
 ## Cómo encontrar cada parte
 
@@ -24,42 +24,50 @@ Los paquetes se agrupan por función. Cada módulo contiene su entidad, reposito
 
 | Módulo | Entidades principales | Responsabilidad |
 | --- | --- | --- |
-| `auth` | UserAccount, SessionToken, LoginChallenge, LoginAttempt | Acceso, contraseñas y sesiones |
-| `store` | Store | Tiendas y alcance de permisos |
-| `customer` | Customer | Datos personales y acuerdo de crédito |
-| `catalog` | Product | Catálogo de productos y servicios |
-| `credit` | CreditSale, SaleItem, Installment | Compras y cronogramas |
-| `payment` | Payment, PaymentLine | Liquidación completa y mora cobrada |
-| `statement` | ClosedStatement | Consultas y fotografías del cierre |
-| `audit` | AuditEvent | Usuario, acción y fecha de cada movimiento |
-| `finance` | Sin persistencia | Tasas, calendario comercial, gracia y cuotas |
-| `dashboard` | Sin entidades propias | Datos del resumen según perfil |
-| `config` / `shared` | Sin entidades propias | Configuración, reloj, errores y convertidores |
+| `acceso` | Usuario, Sesion, VerificacionAcceso, IntentoAcceso | Acceso, contraseñas y sesiones |
+| `tiendas` | Tienda | Tiendas y alcance de permisos |
+| `clientes` | Cliente | Datos personales y acuerdo de crédito |
+| `catalogo` | Producto | Catálogo de productos y servicios |
+| `creditos` | VentaCredito, DetalleVenta, Cuota | Compras y cronogramas |
+| `pagos` | Pago, DetallePago | Liquidación completa y mora cobrada |
+| `estados` | EstadoCerrado | Consultas y fotografías del cierre |
+| `auditoria` | Movimiento | Usuario, acción y fecha de cada movimiento |
+| `finanzas` | Sin persistencia | Tasas, calendario comercial, gracia y cuotas |
+| `resumen` | Sin entidades propias | Datos del resumen según perfil |
+| `config` / `comun` | Sin entidades propias | Configuración, reloj, errores y convertidores |
 
-Ejemplo concreto en `src/main/java/pe/cuentaclara/customer/`:
+Ejemplo concreto en `src/main/java/pe/cuentaclara/clientes/`:
 
-- `Customer.java`: entidad JPA que representa la tabla `customers`.
-- `CustomerRepository.java`: acceso mediante Spring Data JPA.
-- `CustomerRequest.java`: campos y validaciones de entrada.
-- `CustomerResponse.java`: datos que puede recibir la interfaz.
-- `CustomerService.java`: consentimiento, condiciones, usuario y auditoría.
-- `CustomerController.java`: rutas y autorización del perfil.
+- `Cliente.java`: entidad JPA que representa la tabla `customers`.
+- `ClienteRepository.java`: acceso mediante Spring Data JPA.
+- `ClienteEntradaDTO.java`: campos y validaciones de entrada.
+- `ClienteSalidaDTO.java`: datos que puede recibir la interfaz.
+- `ClienteService.java`: consentimiento, condiciones, usuario y auditoría.
+- `ClienteController.java`: rutas y autorización del perfil.
 
 Las dependencias se reciben por constructor y se guardan en campos `final`. No se utiliza Lombok. Las relaciones JPA son diferidas y `open-in-view=false`: los servicios construyen DTOs dentro de sus transacciones. No se serializan entidades ni contraseñas.
 
+### Convención de nombres
+
+Usamos español para los conceptos del negocio: `Cliente`, `VentaCredito`, `CondicionesCredito`, `limiteCredito` y `fechaVencimiento`. Los métodos expresan la operación: `ClienteService.crear`, `ClienteService.actualizar`, `CreditoService.simular`, `MotorFinanciero.calcularPlanPagos` y `EstadoCuentaService.cerrarPendientes`.
+
+Conservamos `Controller`, `Service`, `Repository`, `DTO`, los getters/setters y las palabras que interpreta Spring Data. Por ejemplo, `findAllByTiendaIdOrderByNombreAsc` busca clientes de una tienda ordenados por nombre. Cada service es una clase concreta con sus reglas; no necesita una interfaz y una implementación separadas para este alcance.
+
+Los nombres públicos de las rutas y los campos JSON siguen el [contrato de API](API.md). `@JsonProperty` conecta esos campos con los atributos Java en español; `@Column` y `@JoinColumn` hacen lo mismo con las tablas existentes. Esto permite leer las compras, condiciones y cierres ya guardados sin migrar los datos.
+
 ## Dinero, fechas y persistencia
 
-`FinancialEngine` usa `BigDecimal`, precisión de 36 dígitos para factores y `HALF_UP` a dos decimales para importes. `big-math` calcula potencias decimales. Ningún cálculo definitivo pasa por `double`. Las fórmulas están en [FINANZAS.md](FINANZAS.md).
+`MotorFinanciero` usa `BigDecimal`, precisión de 36 dígitos para factores y `HALF_UP` a dos decimales para importes. `big-math` calcula potencias decimales. Ningún cálculo definitivo pasa por `double`. Las fórmulas están en [FINANZAS.md](FINANZAS.md).
 
-Los convertidores de `shared` guardan importes decimales como texto e instantes locales en ISO. Esto conserva las 14 tablas y los valores de la versión anterior. `ddl-auto=none` evita que Hibernate cambie el esquema automáticamente. El DDL idempotente vive en `src/main/resources/db/schema.sql`.
+Los convertidores de `comun` guardan importes decimales como texto e instantes locales en ISO. Esto conserva las 14 tablas y los valores de la versión anterior. `ddl-auto=none` evita que Hibernate cambie el esquema automáticamente. El DDL idempotente vive en `src/main/resources/db/schema.sql`.
 
 SQLite tiene un escritor. El pool contiene **una conexión** para serializar transacciones completas de esta instancia: una compra no puede comprobar un saldo anterior mientras otra lo consume. Las peticiones HTTP pueden llegar juntas y esperan su turno. Esta configuración es adecuada para la entrega y comercios pequeños; no es una arquitectura para varias réplicas. Para otra escala, cambiar a PostgreSQL implica una migración del esquema, estrategia de bloqueo y nuevas pruebas, no solo cambiar una URL.
 
-Las ventas conservan precios y condiciones pactadas. Los cierres se ejecutan al arrancar y cada minuto mediante `StatementClosingJob`; se recuperan los períodos pendientes si el servidor estuvo apagado. Un cierre ya guardado no se reemplaza. El reloj usa `America/Lima` y se sustituye por un reloj fijo en pruebas. Los días 30/31 se ajustan al último día de un mes corto y se recuperan después.
+Las ventas conservan precios y condiciones pactadas. Los cierres se ejecutan al arrancar y cada minuto mediante `CierreEstadosJob`; se recuperan los períodos pendientes si el servidor estuvo apagado. Un cierre ya guardado no se reemplaza. El reloj usa `America/Lima` y se sustituye por un reloj fijo en pruebas. Los días 30/31 se ajustan al último día de un mes corto y se recuperan después.
 
 ## Acceso y seguridad
 
-`SecurityConfig` establece rutas públicas, cabeceras, cookies y CSRF. `SessionAuthenticationFilter` identifica al usuario por `cc_session`; `SessionService` vuelve a comprobar que el usuario y su tienda sigan activos. `@PreAuthorize` controla los perfiles y `StoreAccessService` limita cada operación a su negocio o a la cuenta del cliente.
+`SecurityConfig` establece rutas públicas, cabeceras, cookies y CSRF. `AutenticacionSesionFilter` identifica al usuario por `cc_session`; `SesionService` vuelve a comprobar que el usuario y su tienda sigan activos. `@PreAuthorize` controla los perfiles y `AccesoTiendaService` limita cada operación a su negocio o a la cuenta del cliente.
 
 - Contraseñas nuevas con PBKDF2-HMAC-SHA256, sal individual y 600 000 iteraciones. Las claves anteriores se verifican y se actualiza su derivación al iniciar sesión correctamente.
 - Sesiones persistidas de ocho horas, cookie HttpOnly y SameSite=Lax; `SECURE_COOKIES=true` al servir mediante HTTPS.
