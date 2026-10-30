@@ -18,12 +18,17 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api")
 public class AccesoController {
+    private final SegundoFactorService segundoFactor;
     private final AccesoService acceso;
     private final AppProperties properties;
     private final RelojNegocioComponent reloj;
 
     public AccesoController(
-            AccesoService acceso, AppProperties properties, RelojNegocioComponent reloj) {
+            AccesoService acceso,
+            AppProperties properties,
+            RelojNegocioComponent reloj,
+            SegundoFactorService segundoFactor) {
+        this.segundoFactor = segundoFactor;
         this.acceso = acceso;
         this.properties = properties;
         this.reloj = reloj;
@@ -42,8 +47,28 @@ public class AccesoController {
     @PostMapping(value = "/login", consumes = "application/json")
     public ResponseEntity<?> login(
             @Valid @RequestBody AccesoEntradaDTO body, HttpServletRequest solicitud) {
-        UsuarioActualPrincipal usuario = acceso.login(body, solicitud.getRemoteAddr());
+        AccesoResultadoDTO resultado = acceso.login(body, solicitud.getRemoteAddr());
+        if (resultado.tokenMfa() != null)
+            return ResponseEntity.ok()
+                    .cacheControl(org.springframework.http.CacheControl.noStore())
+                    .body(Map.of("mfa_required", true, "mfa_token", resultado.tokenMfa()));
+        return respuestaSesion(resultado.usuario());
+    }
+
+    public record PasoMfaDTO(
+            @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 100)
+                    String token,
+            @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 40)
+                    String codigo) {}
+
+    @PostMapping(value = "/login/mfa", consumes = "application/json")
+    public ResponseEntity<?> verificarMfa(@Valid @RequestBody PasoMfaDTO entrada) {
+        return respuestaSesion(segundoFactor.verificarAcceso(entrada.token(), entrada.codigo()));
+    }
+
+    private ResponseEntity<?> respuestaSesion(UsuarioActualPrincipal usuario) {
         return ResponseEntity.ok()
+                .cacheControl(org.springframework.http.CacheControl.noStore())
                 .header(HttpHeaders.SET_COOKIE, cookie(usuario.sessionToken(), Duration.ofHours(8)))
                 .body(
                         Map.of(

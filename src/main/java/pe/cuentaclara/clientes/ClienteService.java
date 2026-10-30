@@ -18,6 +18,7 @@ import pe.cuentaclara.tiendas.TiendaEntity;
 
 @Service
 public class ClienteService {
+    private final pe.cuentaclara.privacidad.PrivacidadService privacidad;
     private final ClienteRepository clientes;
     private final AccesoTiendaService acceso;
     private final UsuarioService usuarios;
@@ -28,6 +29,7 @@ public class ClienteService {
     private final SoporteJsonComponent json;
 
     public ClienteService(
+            pe.cuentaclara.privacidad.PrivacidadService privacidad,
             ClienteRepository clientes,
             AccesoTiendaService acceso,
             UsuarioService usuarios,
@@ -36,6 +38,7 @@ public class ClienteService {
             RelojNegocioComponent reloj,
             AuditoriaService auditoria,
             SoporteJsonComponent json) {
+        this.privacidad = privacidad;
         this.clientes = clientes;
         this.acceso = acceso;
         this.usuarios = usuarios;
@@ -59,7 +62,8 @@ public class ClienteService {
         cliente.setTienda(tienda);
         aplicarDatos(cliente, solicitud);
         cliente.setFechaConsentimiento(reloj.ahora());
-        cliente.setVersionConsentimiento("1");
+        cliente.setVersionConsentimiento("2");
+        cliente.setDiasConservacion(privacidad.diasConservacion(tienda.getId()));
         clientes.saveAndFlush(cliente);
         usuarios.crear(
                 solicitud.username(),
@@ -85,6 +89,9 @@ public class ClienteService {
             JsonNode patch) {
         TiendaEntity tienda = acceso.resolverTienda(usuarioActual, tiendaSeleccionada, true);
         ClienteEntity cliente = acceso.buscarCliente(id, tienda.getId());
+        if (cliente.getAnonimizadoEn() != null)
+            throw new ReglaNegocioException(
+                    "Los datos retirados no se pueden recuperar ni editar.");
         var pendientes = saldos.capitalPendiente(id);
         ClienteEntradaDTO solicitud =
                 json.combinar(
@@ -130,6 +137,9 @@ public class ClienteService {
         cliente.setDiaCorte(solicitud.diaCorte());
         cliente.setHoraCorte(solicitud.horaCorte() == null ? 23 : solicitud.horaCorte());
         cliente.setDiaPago(solicitud.diaPago());
-        cliente.setActivo(solicitud.activo() == null || solicitud.activo());
+        boolean activo = solicitud.activo() == null || solicitud.activo();
+        if (!activo && cliente.getInactivoDesde() == null) cliente.setInactivoDesde(reloj.ahora());
+        if (activo) cliente.setInactivoDesde(null);
+        cliente.setActivo(activo);
     }
 }

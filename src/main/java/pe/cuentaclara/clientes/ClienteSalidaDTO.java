@@ -32,7 +32,10 @@ public record ClienteSalidaDTO(
         @JsonProperty("consent_version") String versionConsentimiento,
         @JsonProperty("active") Boolean activo,
         @JsonProperty("outstanding") BigDecimal capitalPendiente,
-        @JsonProperty("available") BigDecimal disponible) {
+        @JsonProperty("available") BigDecimal disponible,
+        @JsonProperty("retention_days") Integer diasConservacion,
+        @JsonProperty("erase_requested_at") LocalDateTime retiroSolicitadoEn,
+        @JsonProperty("anonymized_at") LocalDateTime anonimizadoEn) {
     public static ClienteSalidaDTO desde(ClienteEntity row, BigDecimal capitalPendiente) {
         return new ClienteSalidaDTO(
                 row.getId(),
@@ -59,6 +62,9 @@ public record ClienteSalidaDTO(
                 row.getVersionConsentimiento(),
                 row.getActivo(),
                 capitalPendiente,
-                row.getLimiteCredito().subtract(capitalPendiente));
+                row.getLimiteCredito().subtract(capitalPendiente),
+                row.getDiasConservacion(),
+                row.getRetiroSolicitadoEn(),
+                row.getAnonimizadoEn());
     }
 }

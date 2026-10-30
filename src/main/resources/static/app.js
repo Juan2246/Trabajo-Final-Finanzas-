@@ -113,7 +113,9 @@ async function api(path, options = {}) {
     credentials: "same-origin",
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(options.body instanceof FormData
+        ? {}
+        : { "Content-Type": "application/json" }),
       ...(state.csrf ? { "X-CSRF-Token": state.csrf } : {}),
       ...(options.headers || {}),
     },
@@ -138,6 +140,10 @@ async function loadData() {
   state.user = state.data.user || state.user;
   if (state.user.role === "platform" && !state.storeId && state.data.store)
     state.storeId = String(state.data.store.id);
+  [state.seguridad, state.privacidad] = await Promise.all([
+    api("/security/mfa"),
+    state.data.store ? api("/privacy" + scope()) : Promise.resolve(null),
+  ]);
   return state.data;
 }
 async function refresh() {
@@ -269,7 +275,8 @@ function navigate(page) {
 }
 window.addEventListener("popstate", () => {
   const page = location.hash.slice(1) || "dashboard";
-  if (state.user && allowedPages().some(([key]) => key === page)) navigate(page);
+  if (state.user && allowedPages().some(([key]) => key === page))
+    navigate(page);
 });
 function noStore() {
   return state.user.role === "platform" && !state.data.store
@@ -335,7 +342,7 @@ function dashboard() {
       <div class="overview">
         <div class="overview-heading"><h2>${own ? "Tu crédito" : "Estado de la cartera"}</h2><label class="currency-picker" for="metric-currency">Moneda<select id="metric-currency" title="Muestra los saldos de una moneda; no convierte importes."><option value="PEN" ${currency === "PEN" ? "selected" : ""}>Soles (PEN)</option><option value="USD" ${currency === "USD" ? "selected" : ""}>Dólares (USD)</option></select></label></div>
         <div class="portfolio-strip">
-          <div class="portfolio-balance"><span>${own ? "Total pendiente de pago" : "Total por cobrar"}</span><strong>${esc(amt(sum(pending), currency))}</strong><p>${icon("file")}${pending.length} cuotas pendientes · ${new Set(pending.map((x) => x.customer_id)).size} ${own ? "cuenta" : new Set(pending.map(x => x.customer_id)).size === 1 ? "cliente" : "clientes"}</p></div>
+          <div class="portfolio-balance"><span>${own ? "Total pendiente de pago" : "Total por cobrar"}</span><strong>${esc(amt(sum(pending), currency))}</strong><p>${icon("file")}${pending.length} cuotas pendientes · ${new Set(pending.map((x) => x.customer_id)).size} ${own ? "cuenta" : new Set(pending.map((x) => x.customer_id)).size === 1 ? "cliente" : "clientes"}</p></div>
           <div class="collection-focus ${due.length ? "has-due" : ""}"><span class="focus-title">${icon(due.length ? "clock" : "check")}${due.length ? "Vencido y por pagar hoy" : "Pagos al día"}</span><strong>${esc(amt(sum(due), currency))}</strong><p>${due.length ? `${count} ${count === 1 ? "cliente tiene" : "clientes tienen"} pagos exigibles.` : "No hay pagos vencidos en esta moneda."}</p><button class="text-button" data-action="filter-dues" data-filter="${due.length ? "due" : "upcoming"}">${due.length ? "Revisar vencimientos" : "Ver próximos pagos"}${icon("chevron")}</button></div>
         </div>
         <div class="monthly-recap">
@@ -1263,6 +1270,7 @@ function settingsPage() {
       "Configuración",
       "Revisa tu acceso y mantén tu cuenta protegida.",
     ) +
+    seguridadCuenta() +
     '<div class="two-columns"><section class="panel form-card"><h2>Cambiar contraseña</h2><p class="muted" style="font-size:12px;margin:9px 0 20px">Usa una contraseña que solo tú conozcas.</p><form id="password-form"><div class="form-grid">' +
     inputField(
       "current_password",
@@ -1297,7 +1305,8 @@ function settingsPage() {
     '<span>Cierra tu sesión cuando termines, sobre todo si compartes la computadora.</span></div><div class="filter-row">' +
     btn("Privacidad", "privacy", "secondary", "shield") +
     btn("Ayuda", "help", "secondary", "help") +
-    "</div></section></div>"
+    "</div></section></div>" +
+    conservacionCuenta()
   );
 }
 
@@ -1442,6 +1451,10 @@ function modal(title, description, body, formId = "", submit = "Guardar") {
 }
 function customerModal(id) {
   const c = id ? getCustomer(id) : {};
+  if (c.anonymized_at) {
+    toast("Los datos retirados no se pueden editar.", true);
+    return;
+  }
   const edit = Boolean(id);
   state.editId = id || null;
   const currency = [
@@ -1628,7 +1641,9 @@ function customerModal(id) {
             "Mínimo 12 caracteres: mayúscula, minúscula y número.",
             'minlength="12" maxlength="128" autocomplete="new-password"',
           ) +
-          '<label class="check"><input type="checkbox" name="consent" required><span>El cliente leyó la política de privacidad versión 1 y autorizó el registro de sus datos para gestionar su crédito. <button type="button" class="text-button" data-action="privacy-inline">Leer política</button></span></label></div><div id="privacy-inline" hidden class="notice">Los datos se usan para administrar compras, crédito y pagos de esta tienda. El cliente puede consultar su información y solicitar corrección o baja al comercio. Los movimientos se conservan mientras exista deuda o una necesidad justificada de respaldo. No ingreses datos de terceros sin su autorización.</div></div>'
+          '<label class="check"><input type="checkbox" name="consent" required><span>El cliente leyó la política de privacidad versión 2 y autorizó el registro de sus datos para gestionar su crédito. <button type="button" class="text-button" data-action="privacy-inline">Leer política</button></span></label></div><div id="privacy-inline" hidden class="notice">Los datos se usan para administrar compras, crédito y pagos de esta tienda. El cliente puede consultar su información y solicitar corrección o baja al comercio. Tras una baja o solicitud de retiro se aplica el plazo de ' +
+          esc(state.privacidad?.retention_days || 180) +
+          " días desde la baja, solicitud o última operación, la que sea posterior. Las cuotas pendientes bloquean el retiro. Después se retiran los datos personales y se mantienen los importes y pagos sin esos datos. No ingreses datos de terceros sin su autorización.</div></div>"
         : "") +
       "<div class='notice'>" +
       icon("info") +
@@ -1718,15 +1733,7 @@ function productModal(id) {
         "Sobre este precio se calculan los intereses pactados.",
         'min="0.01" max="10000000" step="0.01"',
       ) +
-      inputField(
-        "image",
-        "URL de la imagen (opcional)",
-        "url",
-        p.image || "",
-        true,
-        "Usa una dirección HTTPS de una imagen que puedas utilizar.",
-        'maxlength="500" placeholder="https://..."',
-      ) +
+      selectorImagen(p.image || "") +
       '<label class="check"><input type="checkbox" name="installment_allowed" ' +
       (!id || Number(p.installment_allowed) ? "checked" : "") +
       "><span>Permitir que este producto se venda en cuotas mensuales.</span></label></div>",
@@ -1809,8 +1816,8 @@ function storeModal(id) {
 function privacy() {
   modal(
     "Política de privacidad",
-    "Versión 1 · Información para clientes",
-    '<div class="prose"><h3>Para qué se registran tus datos</h3><p>La tienda utiliza tu nombre, documento, correo y teléfono para identificar tu cuenta, acordar tu crédito y administrar compras y pagos. Tu acceso personal permite consultar tus operaciones.</p><h3>Quién puede ver la información</h3><p>El personal autorizado de tu tienda y el administrador de la plataforma, dentro de sus funciones. Los clientes no pueden consultar las cuentas de otras personas.</p><h3>Conservación y solicitudes</h3><p>Los datos se mantienen mientras sean necesarios para gestionar el crédito, resolver saldos o conservar el respaldo de las operaciones. Puedes solicitar acceso, corrección o baja a la tienda. La desactivación conserva el historial de las deudas y pagos.</p><h3>Cuida tu acceso</h3><p>No compartas tu contraseña y cierra la sesión en computadoras compartidas. El comercio registra la fecha de tu consentimiento al crear la cuenta.</p></div>',
+    "Versión 2 · Información para clientes",
+    `<div class="prose"><h3>Para qué se registran tus datos</h3><p>La tienda utiliza tu nombre, documento, correo y teléfono para identificar tu cuenta, acordar tu crédito y administrar compras y pagos. El comercio registra la fecha y versión de tu consentimiento al crear la cuenta.</p><h3>Quién puede ver la información</h3><p>El personal autorizado de tu tienda y el administrador de la plataforma, dentro de sus funciones. Cada cliente solo puede consultar su propia cuenta.</p><h3>Plazo de conservación</h3><p>${state.privacidad ? `Esta tienda configura un plazo de <strong>${Number(state.privacidad.retention_days)} días</strong>. En Configuración puedes ver el plazo que corresponde a tu cuenta.` : "Cada tienda informa su plazo antes del registro. El plazo inicial de la plataforma es 180 días; el comercio puede configurarlo entre 30 y 3650 días."} El plazo se cuenta desde la baja, solicitud de retiro o última operación, la que ocurra después. Si existen cuotas pendientes, el retiro queda bloqueado hasta liquidarlas y cumplir el plazo desde el último pago. Un aumento del plazo no amplía el aceptado por clientes ya registrados.</p><h3>Retiro de datos</h3><p>Desde Configuración puedes descargar tu información o solicitar su retiro. La solicitud suspende nuevas compras, pero permite consultar y pagar. Al cumplirse las condiciones, se retiran tu nombre, documento, correo, teléfono y acceso, incluidas sus copias en estados de cuenta. Los importes y pagos permanecen vinculados a un identificador interno sin esos datos personales.</p><h3>Contacto y correcciones</h3><p>${state.privacidad?.contact ? `Comunícate con la tienda: <strong>${esc(state.privacidad.contact)}</strong>.` : "Solicita al administrador de tu tienda el contacto para corregir tus datos o resolver consultas."} Puedes cancelar una solicitud de retiro antes de que se procese.</p><h3>Cuida tu acceso</h3><p>Activa el doble factor en Configuración, guarda tus códigos de recuperación y cierra la sesión en computadoras compartidas.</p></div>`,
   );
 }
 function help() {
@@ -1877,25 +1884,33 @@ function salePayload() {
   return raw;
 }
 async function submitForm(form) {
-  const target = {
-    "customer-form": "#modal-error",
-    "product-form": "#modal-error",
-    "store-form": "#modal-error",
-    "sale-form": "#sale-error",
-    "payment-form": "#payment-error",
-    "statement-form": "#statement-error",
-    "password-form": "#password-error",
-  }[form.id];
+  const cuentaForm = /^(mfa-|privacy-(request|cancel|process))/.test(form.id);
+  const target = cuentaForm
+    ? "#modal-error"
+    : {
+        "customer-form": "#modal-error",
+        "product-form": "#modal-error",
+        "store-form": "#modal-error",
+        "sale-form": "#sale-error",
+        "payment-form": "#payment-error",
+        "statement-form": "#statement-error",
+        "password-form": "#password-error",
+        "privacy-policy-form": "#privacy-policy-error",
+      }[form.id];
   const error = target ? $(target) : null;
   if (error) error.textContent = "";
   const submit = $('[type="submit"]', form);
   if (submit) submit.disabled = true;
   try {
+    if (await enviarConfiguracion(form)) return;
+    if (form.id === "product-form" && form.dataset.uploading) return;
     if (form.id === "login-form") {
       await doLogin(form);
       return;
     }
     if (["customer-form", "product-form", "store-form"].includes(form.id)) {
+      if (form.id === "product-form" && !form.elements.image.value)
+        throw Error("Selecciona una imagen del producto antes de guardar.");
       const resource = {
         "customer-form": "customers",
         "product-form": "products",
@@ -1974,6 +1989,10 @@ async function doLogin(form) {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    if (result.mfa_required) {
+      mostrarVerificacionMfa(result.mfa_token);
+      return;
+    }
     state.user = result.user;
     state.csrf = result.csrf;
     await loadData();
@@ -2002,6 +2021,9 @@ async function newChallenge() {
 function renderLogin() {
   if ($("#modal").open) $("#modal").close();
   state.csrf = "";
+  state.mfaToken = null;
+  state.seguridad = null;
+  state.privacidad = null;
   state.data = null;
   state.page = "dashboard";
   state.storeId = "";
@@ -2034,6 +2056,7 @@ function renderLogin() {
 async function runAction(button) {
   const action = button.dataset.action;
   const id = button.dataset.id;
+  if (await accionCuenta(action)) return;
   switch (action) {
     case "go-payments":
       navigate("payments");

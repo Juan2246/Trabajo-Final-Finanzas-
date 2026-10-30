@@ -7,6 +7,7 @@ data/
 *.db-shm
 *.db-wal
 *.sqlite*
+mfa.key
 __pycache__/
 *.py[cod]
 .venv/

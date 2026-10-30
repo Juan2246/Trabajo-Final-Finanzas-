@@ -12,7 +12,7 @@ public record ProductoEntradaDTO(
         @JsonProperty("brand") @Size(max = 100) String marca,
         @JsonProperty("supplier") @Size(max = 120) String proveedor,
         @JsonProperty("unit") @NotBlank @Size(max = 30) String unidad,
-        @JsonProperty("image") @Size(max = 1000) String imagen,
+        @JsonProperty("image") @NotBlank @Size(max = 1000) String imagen,
         @JsonProperty("cash_price")
                 @NotNull
                 @DecimalMin("0.01")

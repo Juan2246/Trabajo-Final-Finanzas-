@@ -36,11 +36,14 @@ public class SecurityConfig {
                                 config.csrfTokenRepository(new SesionCsrfTokenRepository())
                                         .csrfTokenRequestHandler(
                                                 new CsrfTokenRequestAttributeHandler())
-                                        .ignoringRequestMatchers("/api/login"))
+                                        .ignoringRequestMatchers("/api/login", "/api/login/mfa"))
                 .authorizeHttpRequests(
                         acceso ->
                                 acceso.requestMatchers(
-                                                "/api/health", "/api/challenge", "/api/login")
+                                                "/api/health",
+                                                "/api/challenge",
+                                                "/api/login",
+                                                "/api/login/mfa")
                                         .permitAll()
                                         .requestMatchers("/api/**")
                                         .authenticated()

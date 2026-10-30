@@ -11,20 +11,21 @@ import pe.cuentaclara.comun.ReglaNegocioException;
 import pe.cuentaclara.comun.SoporteJsonComponent;
 import pe.cuentaclara.tiendas.AccesoTiendaService;
 
-import java.net.URI;
-
 @Service
 public class ProductoService {
+    private final ImagenProductoService imagenes;
     private final ProductoRepository productos;
     private final AccesoTiendaService acceso;
     private final AuditoriaService auditoria;
     private final SoporteJsonComponent json;
 
     public ProductoService(
+            ImagenProductoService imagenes,
             ProductoRepository productos,
             AccesoTiendaService acceso,
             AuditoriaService auditoria,
             SoporteJsonComponent json) {
+        this.imagenes = imagenes;
         this.productos = productos;
         this.acceso = acceso;
         this.auditoria = auditoria;
@@ -75,11 +76,9 @@ public class ProductoService {
 
     private void aplicarDatos(ProductoEntity producto, ProductoEntradaDTO solicitud) {
         String imagen = limpiar(solicitud.imagen());
-        if (!imagen.isEmpty()) {
-            URI uri = URI.create(imagen);
-            if (!"https".equals(uri.getScheme()) || uri.getHost() == null)
-                throw new ReglaNegocioException("La imagen debe ser un enlace HTTPS.");
-        }
+        // Los enlaces anteriores se conservan al editar; las altas usan archivos del comercio.
+        if (!imagen.equals(producto.getImagen()) || imagen.isEmpty())
+            imagenes.validarReferencia(imagen, producto.getTienda().getId());
         producto.setNombre(solicitud.nombre().strip());
         producto.setDescripcion(limpiar(solicitud.descripcion()));
         producto.setMarca(limpiar(solicitud.marca()));

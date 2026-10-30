@@ -266,4 +266,48 @@ public class ClienteEntity {
     public void setActivo(Boolean activo) {
         this.activo = activo;
     }
+
+    @Column(name = "inactive_since")
+    private LocalDateTime inactivoDesde;
+
+    public LocalDateTime getInactivoDesde() {
+        return inactivoDesde;
+    }
+
+    public void setInactivoDesde(LocalDateTime inactivoDesde) {
+        this.inactivoDesde = inactivoDesde;
+    }
+
+    @Column(name = "erase_requested_at")
+    private LocalDateTime retiroSolicitadoEn;
+
+    public LocalDateTime getRetiroSolicitadoEn() {
+        return retiroSolicitadoEn;
+    }
+
+    public void setRetiroSolicitadoEn(LocalDateTime retiroSolicitadoEn) {
+        this.retiroSolicitadoEn = retiroSolicitadoEn;
+    }
+
+    @Column(name = "anonymized_at")
+    private LocalDateTime anonimizadoEn;
+
+    public LocalDateTime getAnonimizadoEn() {
+        return anonimizadoEn;
+    }
+
+    public void setAnonimizadoEn(LocalDateTime anonimizadoEn) {
+        this.anonimizadoEn = anonimizadoEn;
+    }
+
+    @Column(name = "retention_days")
+    private Integer diasConservacion = 180;
+
+    public Integer getDiasConservacion() {
+        return diasConservacion;
+    }
+
+    public void setDiasConservacion(Integer diasConservacion) {
+        this.diasConservacion = diasConservacion;
+    }
 }

@@ -24,6 +24,10 @@ spring:
   threads:
     virtual:
       enabled: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
 app:
   database-path: ${DB_PATH:data/cuenta.db}
   secure-cookies: ${SECURE_COOKIES:false}
@@ -33,6 +37,9 @@ app:
   admin-user: ${ADMIN_USER:admin}
   admin-password: ${ADMIN_PASSWORD:}
   demo-password: ${DEMO_PASSWORD:}
+  retention-enabled: ${RETENTION_ENABLED:true}
+  security:
+    encryption-key: ${MFA_ENCRYPTION_KEY:}
 logging:
   level:
     org.hibernate.orm.deprecation: ERROR

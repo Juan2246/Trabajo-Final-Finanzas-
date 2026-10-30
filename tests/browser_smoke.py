@@ -40,7 +40,7 @@ def log_in(page, url, username, password):
     page.locator("#login-form").wait_for()
     page.locator("#login-form [name=username]").fill(username)
     page.locator("#login-form [name=password]").fill(password)
-    page.wait_for_function("document.querySelector('#challenge-question').textContent.includes('+')")
+    expect(page.locator("#challenge-question")).to_contain_text("+")
     question = page.locator("#challenge-question").inner_text()
     answer = sum(int(x) for x in re.findall(r"\d+", question))
     page.locator("#login-form [name=answer]").fill(str(answer))
@@ -84,6 +84,9 @@ def business_flows(page, context, url):
         "cash_price": "8.00", "credit_price": "10.00",
     }.items():
         product.locator('[name="' + name + '"]').fill(value)
+    product.locator(".image-library summary").click()
+    product.locator('[data-imagen="/catalogo/producto.jpg"]').click()
+    expect(product.locator("#product-image-preview img")).to_be_visible()
     result = mutate_with_ui(page, "/api/products",
         lambda: product.locator('button[type=submit]').click())
     product_id = result["id"]
@@ -94,6 +97,7 @@ def business_flows(page, context, url):
         lambda: page.locator("#product-form button[type=submit]").click(), method="PATCH")
     record = next(p for p in api_data(context, url)["products"] if p["id"] == product_id)
     assert float(record["credit_price"]) == 12
+    assert record["image"] == "/catalogo/producto.jpg"
     for active in (False, True):
         page.locator('[data-action="toggle-product"][data-id="' + str(product_id) + '"]').click()
         mutate_with_ui(page, "/api/products/" + str(product_id),
@@ -201,6 +205,17 @@ def platform_and_customer(browser, url):
     assert pending.value.status == 200
     customer_page.locator("#statement-output .statement").wait_for()
     customer_page.screenshot(path=str(ARTIFACTS / "08-vista-cliente.png"), full_page=True)
+    customer_page.locator('[data-page="settings"]').first.click()
+    customer_page.locator('[data-action="privacy-export"]').click()
+    customer_page.locator('[data-action="privacy-request"]').click()
+    customer_page.locator('#privacy-request-form [name=password]').fill('LuciaSegura2026!')
+    mutate_with_ui(customer_page, '/api/privacy/request', lambda: customer_page.locator('#privacy-request-form button[type=submit]').click())
+    expect(customer_page.locator('[data-action="privacy-cancel"]')).to_be_visible()
+    customer_page.set_viewport_size({'width': 320, 'height': 800})
+    check_mobile_layout(customer_page, 'privacidad-cliente-320')
+    customer_page.locator('[data-action="privacy-cancel"]').click()
+    customer_page.locator('#privacy-cancel-form [name=password]').fill('LuciaSegura2026!')
+    mutate_with_ui(customer_page, '/api/privacy/cancel', lambda: customer_page.locator('#privacy-cancel-form button[type=submit]').click())
     customer_context.close()
 
     admin_context = browser.new_context(viewport={"width": 1440, "height": 1000}, locale="es-PE")
@@ -247,6 +262,69 @@ def mobile_page(page, section):
     if menu.is_visible():
         menu.click()
     page.locator('[data-page="' + section + '"]').first.click()
+
+
+def account_flows(page, context, url):
+    import hashlib
+    import hmac
+    import struct
+
+    page.locator('[data-page="settings"]').first.click()
+    page.locator('[data-action="mfa-setup"]').click()
+    page.locator('#mfa-setup-form [name=password]').fill('PruebaSegura2026!')
+    mutate_with_ui(page, '/api/security/mfa/setup', lambda: page.locator('#mfa-setup-form button[type=submit]').click())
+    expect(page.locator('.authenticator-setup img')).to_be_visible()
+    secret = page.locator('.manual-secret').inner_text()
+    digest = hmac.new(base64.b32decode(secret), struct.pack('>Q', int(time.time()) // 30), hashlib.sha1).digest()
+    offset = digest[-1] & 15
+    otp = str((struct.unpack('>I', digest[offset:offset + 4])[0] & 0x7fffffff) % 1000000).zfill(6)
+    page.locator('#mfa-confirm-form [name=codigo]').fill(otp)
+    result = mutate_with_ui(page, '/api/security/mfa/confirm', lambda: page.locator('#mfa-confirm-form button[type=submit]').click())
+    codes = result['recovery_codes']
+    expect(page.locator('.recovery-codes code')).to_have_count(8)
+    with page.expect_download() as pending:
+        page.locator('[data-action="mfa-download"]').click()
+    downloaded = Path(pending.value.path()).read_text(encoding='utf8')
+    assert all(code in downloaded for code in codes)
+    page.locator('#modal .dialog-close').click()
+    expect(page.locator('.recovery-codes code')).to_have_count(0)
+    page.screenshot(path=str(ARTIFACTS / '10-configuracion.png'), full_page=True)
+    page.locator('[data-action="logout"]').click()
+    page.locator('#login-user').fill('tienda')
+    page.locator('#login-password').fill('PruebaSegura2026!')
+    expect(page.locator("#challenge-question")).to_contain_text("+")
+    page.locator('#login-answer').fill(str(sum(int(n) for n in re.findall(r'\d+', page.locator('#challenge-question').inner_text()))))
+    page.locator('#login-form button[type=submit]').click()
+    page.locator('#mfa-login-form').wait_for()
+    page.screenshot(path=str(ARTIFACTS / '11-segundo-factor.png'), full_page=True)
+    assert context.request.get(url + '/api/data').status == 401
+    page.set_viewport_size({'width': 320, 'height': 800})
+    check_mobile_layout(page, 'segundo-factor-320')
+    page.locator('[data-action="mfa-use-recovery"]').click()
+    page.locator('#mfa-code').fill(codes[0])
+    mutate_with_ui(page, '/api/login/mfa', lambda: page.locator('#mfa-login-form button[type=submit]').click())
+    page.locator('#page-title').wait_for()
+    page.set_viewport_size({'width': 1440, 'height': 1000})
+    page.locator('[data-page="settings"]').first.click()
+    expect(page.locator('#security-title')).to_be_visible()
+    page.locator('[data-action="mfa-disable"]').click()
+    page.locator('#mfa-disable-form [name=password]').fill('PruebaSegura2026!')
+    page.locator('#mfa-disable-form [name=codigo]').fill(codes[1])
+    mutate_with_ui(page, '/api/security/mfa/disable', lambda: page.locator('#mfa-disable-form button[type=submit]').click())
+    expect(page.locator('[data-action="mfa-setup"]')).to_be_visible()
+    policy = page.locator('#privacy-policy-form')
+    policy.locator('[name=retention_days]').fill('90')
+    policy.locator('[name=contact]').fill('privacidad@example.test')
+    policy.locator('[name=password]').fill('PruebaSegura2026!')
+    mutate_with_ui(page, '/api/privacy/policy', lambda: policy.locator('button[type=submit]').click())
+    expect(page.locator('#privacy-policy-form [name=retention_days]')).to_have_value('90')
+    page.locator('[data-page="products"]').first.click()
+    page.locator('[data-action="edit-product"][data-id="1"]').click()
+    uploaded = mutate_with_ui(page, '/api/product-images', lambda: page.locator('#product-image-file').set_input_files(ROOT / 'src/main/resources/static/catalogo/leche.jpg'))
+    expect(page.locator('#product-form [name=image]')).to_have_value(uploaded['image'])
+    page.screenshot(path=str(ARTIFACTS / '12-imagen-producto.png'), full_page=True)
+    mutate_with_ui(page, '/api/products/1', lambda: page.locator('#product-form button[type=submit]').click(), method='PATCH')
+    assert any(p['image'] == uploaded['image'] for p in api_data(context, url)['products'])
 
 
 def main():
@@ -324,6 +402,7 @@ def main():
                         business_flows(page, context, url)
                         assert page.locator(".toast").count() <= 2, "Se acumularon las notificaciones."
                         platform_and_customer(browser, url)
+                        account_flows(page, context, url)
                         expect(page.locator(".toast")).to_have_count(0, timeout=10000)
                         page.locator('[data-page="dashboard"]').first.click()
                         page.set_viewport_size({"width": 390, "height": 844})
@@ -333,7 +412,7 @@ def main():
                         expect(page.locator('button[data-action="toggle-menu"]')).to_have_attribute('aria-expanded', 'true')
                         page.keyboard.press('Escape')
                         expect(page.locator('.sidebar')).to_have_attribute('inert', '')
-                        for section in ("customers", "products", "sales", "payments", "statements"):
+                        for section in ("customers", "products", "sales", "payments", "statements", "settings"):
                             mobile_page(page, section)
                             check_mobile_layout(page, "celular-390-" + section)
                         page.set_viewport_size({"width": 320, "height": 760})

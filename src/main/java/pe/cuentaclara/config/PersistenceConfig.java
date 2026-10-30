@@ -10,13 +10,14 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 
 import javax.sql.DataSource;
 
 @Configuration
 public class PersistenceConfig {
     @Bean
-    public DataSource dataSource(AppProperties properties) throws Exception {
+    public DataSource dataSource(AppProperties properties, Clock clock) throws Exception {
         Path database = Path.of(properties.databasePath()).toAbsolutePath();
         Files.createDirectories(database.getParent());
         HikariConfig config = new HikariConfig();
@@ -25,12 +26,14 @@ public class PersistenceConfig {
         config.addDataSourceProperty("foreign_keys", "true");
         config.addDataSourceProperty("busy_timeout", "15000");
         config.addDataSourceProperty("journal_mode", "WAL");
+        config.addDataSourceProperty("secure_delete", "true");
         // SQLite admite un escritor. La conexión única serializa las transacciones completas.
         config.setMaximumPoolSize(1);
         config.setMinimumIdle(1);
         config.setConnectionTimeout(30000);
         HikariDataSource source = new HikariDataSource(config);
         new ResourceDatabasePopulator(new ClassPathResource("db/schema.sql")).execute(source);
+        MigracionesDatosUtil.aplicar(source, clock);
         return source;
     }
 }

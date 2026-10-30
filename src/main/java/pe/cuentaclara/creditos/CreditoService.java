@@ -167,6 +167,9 @@ public class CreditoService {
 
     private CalculoVenta calcular(TiendaEntity tienda, VentaEntradaDTO solicitud) {
         ClienteEntity cliente = acceso.buscarCliente(solicitud.clienteId(), tienda.getId());
+        if (cliente.getRetiroSolicitadoEn() != null)
+            throw new ReglaNegocioException(
+                    "El cliente ha solicitado retirar sus datos. No se permiten nuevas compras.");
         if (!cliente.getActivo()) throw new ReglaNegocioException("El cliente está desactivado.");
         if (solicitud.fechaCompra().isAfter(reloj.ahora())
                 || solicitud.fechaCompra().isBefore(reloj.ahora().minusDays(3650)))

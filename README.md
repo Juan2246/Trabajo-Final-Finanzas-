@@ -70,6 +70,7 @@ El backend usa **Spring Boot, Spring Security y Spring Data JPA**. Se organiza p
 ```text
 src/main/java/pe/cuentaclara/
   acceso/      Acceso, usuarios, sesiones y contraseñas
+  privacidad/  Plazos, solicitudes y retiro de datos personales
   tiendas/     Tiendas y permisos por negocio
   clientes/    Clientes y condiciones de crédito
   catalogo/    Productos y servicios
@@ -84,8 +85,8 @@ src/main/java/pe/cuentaclara/
   inicio/      Datos iniciales opcionales
 src/main/resources/
   application.yml   Variables de configuración
-  db/schema.sql     14 tablas, claves e índices
-  static/           HTML, CSS, JavaScript, SVG y fuentes locales
+  db/schema.sql     19 tablas, claves e índices
+  static/           HTML, CSS, JavaScript, fotografías y fuentes locales
 src/test/           Pruebas JUnit y casos financieros de referencia
 tests/              Recorridos de navegador y contenedor
 docs/               Diseño, fórmulas, API y manual
@@ -121,6 +122,28 @@ Cambia esa clave por una propia. El volumen conserva la base. Abre http://localh
 ## Configuración y despliegue
 
 Las variables disponibles están en [.env.example](.env.example). El servidor lee variables de entorno del sistema; el archivo `.env` no se carga automáticamente.
+
+### Doble factor
+
+En **Configuración → Activar doble factor**, confirma la contraseña, escanea el QR con una app autenticadora y escribe su código. También puedes introducir la clave manualmente. Al activarlo se cierran las otras sesiones y se muestran ocho códigos de recuperación, una sola vez. Cada código sirve para un único acceso; pueden descargarse o renovarse desde Configuración.
+
+El inicio de sesión con doble factor tiene dos pasos. La contraseña no crea una sesión hasta verificar el código. Los pasos pendientes vencen a los tres minutos, los códigos TOTP duran 30 segundos con una ventana de tolerancia de un paso, y cinco fallos bloquean la verificación durante 15 minutos. No se requiere un servidor de correo. Se utilizan [java-otp](https://github.com/jchambers/java-otp) y [ZXing](https://github.com/zxing/zxing); el QR se genera dentro del servidor.
+
+Los secretos del autenticador se cifran con AES-GCM. Por defecto se crea `mfa.key` junto a la base; el volumen de Docker lo conserva. También puede proporcionarse `MFA_ENCRYPTION_KEY` en Base64, con 32 bytes. **La clave debe mantenerse estable y respaldarse junto con la base, con acceso restringido.** Si una base ya tiene secretos y falta su clave, el servidor se detiene para evitar reemplazarla. No se debe cambiar la clave sin migrar los secretos cifrados.
+
+### Datos personales
+
+Cada tienda configura su contacto y plazo en **Configuración → Conservación de datos**. El valor inicial es 180 días, configurable entre 30 y 3650: es una decisión operativa de la aplicación, no un plazo legal universal. Los aumentos solo aplican a nuevos registros; las reducciones acortan también los plazos existentes. La fecha y versión del consentimiento quedan registradas al crear al cliente.
+
+El cliente puede descargar sus datos, solicitar su retiro y cancelar la solicitud antes de que se procese. La solicitud bloquea nuevas compras. Una baja inicia igualmente el plazo, contado desde la baja, solicitud o última operación, la que ocurra después. Cualquier cuota pendiente bloquea el retiro. El último pago reinicia el cómputo del plazo.
+
+Con `RETENTION_ENABLED=true`, el proceso revisa las condiciones cada hora. También puede ejecutarse desde Configuración para los casos elegibles, confirmando la contraseña. Retira nombre, documento, correo, teléfono y credenciales; revoca sesiones y segundo factor; limpia las copias personales de los estados de cuenta y del registro de alta. Conserva los importes y pagos bajo un identificador interno. Los perfiles retirados no se pueden reactivar.
+
+La limpieza alcanza la base activa. Las exportaciones descargadas y las copias de seguridad administradas fuera de la aplicación requieren su propia política de conservación. Después de restaurar una copia, hay que ejecutar el proceso de conservación antes de volver a dar acceso a usuarios. Las bases anteriores se actualizan de forma aditiva; una baja antigua sin fecha inicia su plazo al actualizar, sin retirar datos inmediatamente.
+
+### Imágenes
+
+Todo producto requiere una imagen. El catálogo permite subir JPG o PNG de hasta 5 MB y 12 megapíxeles, muestra una vista previa y ofrece fotos de referencia con sus [créditos y licencias](src/main/resources/static/catalogo/creditos.html). El servidor verifica el contenido, limita las dimensiones y vuelve a codificar los píxeles para retirar metadatos. Las imágenes subidas se guardan en SQLite y solo son accesibles dentro de la tienda correspondiente. Las cargas que no se vinculan a un producto se eliminan después de 24 horas.
 
 En un hosting con disco persistente, ejecuta el contenedor detrás de un proxy HTTPS y configura `SECURE_COOKIES=1`. Mantén `DB_PATH` en el volumen persistente y haz respaldos con la API de backup de SQLite. La base de datos no va en Git.
 

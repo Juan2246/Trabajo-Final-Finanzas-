@@ -22,6 +22,12 @@ import java.util.Map;
 public class ApiExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    ResponseEntity<?> archivoGrande(Exception error) {
+        return response(
+                413, "La imagen supera el tamaño permitido. Usa un JPG o PNG de hasta 5 MB.");
+    }
+
     @ExceptionHandler(ReglaNegocioException.class)
     ResponseEntity<?> rubro(ReglaNegocioException error) {
         return response(error.getStatus(), error.getMessage());
@@ -37,6 +43,7 @@ public class ApiExceptionHandler {
         HttpMessageNotReadableException.class,
         IllegalArgumentException.class,
         ConstraintViolationException.class,
+        org.springframework.web.multipart.support.MissingServletRequestPartException.class,
         MethodArgumentTypeMismatchException.class
     })
     ResponseEntity<?> invalid(Exception error) {

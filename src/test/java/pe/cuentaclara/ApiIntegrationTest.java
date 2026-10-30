@@ -45,6 +45,7 @@ import java.util.concurrent.Executors;
         properties = {
             "app.demo=true",
             "app.closing-enabled=false",
+            "app.retention-enabled=false",
             "app.admin-password=PruebaSegura2026!",
             "app.demo-password=PruebaSegura2026!"
         })
@@ -85,6 +86,11 @@ class ApiIntegrationTest {
     void resetOnlyTheTemporaryDatabase() throws Exception {
         for (String table :
                 List.of(
+                        "second_factors",
+                        "login_steps",
+                        "recovery_codes",
+                        "privacy_policies",
+                        "product_images",
                         "sessions",
                         "audit",
                         "challenges",
@@ -499,6 +505,553 @@ class ApiIntegrationTest {
         database.update("UPDATE stores SET active=0 WHERE id=1");
         assertThat(solicitud(get("/api/data"), merchant, null).getResponse().getStatus())
                 .isEqualTo(401);
+    }
+
+    @Test
+    void mfaUsesEncryptedSecretsAndDoesNotIssueSessionBeforeSecondStep() throws Exception {
+        Session otra = login("tienda");
+        JsonNode setup =
+                json(
+                        solicitud(
+                                post("/api/security/mfa/setup"),
+                                merchant,
+                                Map.of("password", "PruebaSegura2026!")));
+        String secreto = setup.get("secret").asText();
+        assertThat(setup.get("qr").asText()).startsWith("data:image/png;base64,");
+        assertThat(
+                        database.queryForObject(
+                                "SELECT pending_secret FROM second_factors", String.class))
+                .doesNotContain(secreto);
+        String otp = codigoOtp(secreto, 0);
+        JsonNode activacion =
+                json(solicitud(post("/api/security/mfa/confirm"), merchant, Map.of("codigo", otp)));
+        assertThat(activacion.get("recovery_codes").size()).isEqualTo(8);
+        assertThat(solicitud(get("/api/me"), otra, null).getResponse().getStatus()).isEqualTo(401);
+        MvcResult primerPaso = primerPasoMfa();
+        assertThat(primerPaso.getResponse().getCookie("cc_session")).isNull();
+        assertThat(json(primerPaso).get("mfa_required").asBoolean()).isTrue();
+        String token = json(primerPaso).get("mfa_token").asText();
+        assertThat(database.queryForObject("SELECT token_hash FROM login_steps", String.class))
+                .doesNotContain(token);
+        assertThat(segundoPasoMfa(token, otp).getResponse().getStatus()).isEqualTo(400);
+        MvcResult acceso = segundoPasoMfa(token, codigoOtp(secreto, 1));
+        assertThat(acceso.getResponse().getStatus()).isEqualTo(200);
+        assertThat(acceso.getResponse().getCookie("cc_session")).isNotNull();
+        assertThat(segundoPasoMfa(token, codigoOtp(secreto, 1)).getResponse().getStatus())
+                .isEqualTo(401);
+        assertThat(count("login_steps")).isZero();
+    }
+
+    @Test
+    void recoveryCodesAreHashedAndConsumedOnlyOnce() throws Exception {
+        var codigos = activarMfa();
+        String codigo = codigos.get(0).asText();
+        assertThat(database.queryForList("SELECT code_hash FROM recovery_codes", String.class))
+                .allMatch(hash -> hash.length() == 64 && !hash.contains(codigo));
+        String token = json(primerPasoMfa()).get("mfa_token").asText();
+        assertThat(segundoPasoMfa(token, codigo).getResponse().getStatus()).isEqualTo(200);
+        assertThat(count("recovery_codes")).isEqualTo(7);
+        String otro = json(primerPasoMfa()).get("mfa_token").asText();
+        assertThat(segundoPasoMfa(otro, codigo).getResponse().getStatus()).isEqualTo(400);
+        assertThat(count("recovery_codes")).isEqualTo(7);
+    }
+
+    @Test
+    void mfaLimitsAttemptsAcrossLoginTokensAndRejectsExpiredSteps() throws Exception {
+        activarMfa();
+        String token = json(primerPasoMfa()).get("mfa_token").asText();
+        database.update("UPDATE login_steps SET expires_at=0");
+        assertThat(segundoPasoMfa(token, "INVALID").getResponse().getStatus()).isEqualTo(401);
+        token = json(primerPasoMfa()).get("mfa_token").asText();
+        for (int i = 0; i < 5; i++)
+            assertThat(segundoPasoMfa(token, "INVALID").getResponse().getStatus()).isEqualTo(400);
+        assertThat(segundoPasoMfa(token, "INVALID").getResponse().getStatus()).isEqualTo(429);
+        assertThat(database.queryForObject("SELECT attempts FROM second_factors", Integer.class))
+                .isEqualTo(5);
+        assertThat(primerPasoMfa().getResponse().getStatus()).isEqualTo(429);
+    }
+
+    @Test
+    void passwordChangeInvalidatesPendingMfaAndDisableRequiresBothFactors() throws Exception {
+        var codigos = activarMfa();
+        String token = json(primerPasoMfa()).get("mfa_token").asText();
+        assertThat(
+                        solicitud(
+                                        post("/api/password"),
+                                        merchant,
+                                        Map.of(
+                                                "current_password",
+                                                "PruebaSegura2026!",
+                                                "password",
+                                                "OtraClaveSegura2026!"))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(200);
+        assertThat(segundoPasoMfa(token, codigos.get(0).asText()).getResponse().getStatus())
+                .isEqualTo(401);
+        assertThat(
+                        solicitud(
+                                        post("/api/security/mfa/disable"),
+                                        merchant,
+                                        Map.of(
+                                                "password",
+                                                "OtraClaveSegura2026!",
+                                                "codigo",
+                                                "incorrecto"))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(400);
+        assertThat(
+                        solicitud(
+                                        post("/api/security/mfa/disable"),
+                                        merchant,
+                                        Map.of(
+                                                "password",
+                                                "OtraClaveSegura2026!",
+                                                "codigo",
+                                                codigos.get(0).asText()))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(200);
+        assertThat(count("recovery_codes")).isZero();
+        assertThat(
+                        json(solicitud(get("/api/security/mfa"), merchant, null))
+                                .get("enabled")
+                                .asBoolean())
+                .isFalse();
+    }
+
+    @Test
+    void mfaSetupNeedsPasswordCsrfAndFreshConfirmation() throws Exception {
+        assertThat(
+                        http.perform(
+                                        post("/api/security/mfa/setup")
+                                                .cookie(merchant.cookie())
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content("{\"password\":\"PruebaSegura2026!\"}"))
+                                .andReturn()
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(403);
+        assertThat(
+                        solicitud(
+                                        post("/api/security/mfa/setup"),
+                                        merchant,
+                                        Map.of("password", "incorrecta"))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(400);
+        var setup =
+                json(
+                        solicitud(
+                                post("/api/security/mfa/setup"),
+                                merchant,
+                                Map.of("password", "PruebaSegura2026!")));
+        database.update("UPDATE second_factors SET pending_until=0");
+        assertThat(
+                        solicitud(
+                                        post("/api/security/mfa/confirm"),
+                                        merchant,
+                                        Map.of(
+                                                "codigo",
+                                                codigoOtp(setup.get("secret").asText(), 0)))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(400);
+        assertThat(
+                        json(solicitud(get("/api/security/mfa"), merchant, null))
+                                .get("enabled")
+                                .asBoolean())
+                .isFalse();
+    }
+
+    @Test
+    void imageUploadValidatesContentAndRequiresStoreOwnership() throws Exception {
+        byte[] imagen = getClass().getResourceAsStream("/static/catalogo/leche.jpg").readAllBytes();
+        var archivo =
+                new org.springframework.mock.web.MockMultipartFile(
+                        "file", "foto.jpg", "image/jpeg", imagen);
+        MvcResult subida =
+                http.perform(
+                                multipart("/api/product-images")
+                                        .file(archivo)
+                                        .cookie(merchant.cookie())
+                                        .header("X-CSRF-Token", merchant.csrf()))
+                        .andReturn();
+        assertThat(subida.getResponse().getStatus()).isEqualTo(200);
+        String ruta = json(subida).get("image").asText();
+        assertThat(
+                        solicitud(patch("/api/products/1"), merchant, Map.of("image", ruta))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(200);
+        MvcResult lectura = solicitud(get(ruta), merchant, null);
+        assertThat(lectura.getResponse().getContentType()).isEqualTo("image/jpeg");
+        assertThat(lectura.getResponse().getContentAsByteArray()).isNotEmpty();
+        assertThat(solicitud(get(ruta), login("cliente"), null).getResponse().getStatus())
+                .isEqualTo(200);
+        database.update(
+                "INSERT INTO stores(id,name,business,address,active)"
+                        + " VALUES(2,'Otra','Bazar','',1)");
+        database.update("UPDATE product_images SET store_id=2");
+        assertThat(solicitud(get(ruta), merchant, null).getResponse().getStatus()).isEqualTo(404);
+        assertThat(
+                        solicitud(patch("/api/products/2"), merchant, Map.of("image", ruta))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(400);
+        var falsa =
+                new org.springframework.mock.web.MockMultipartFile(
+                        "file", "imagen.jpg", "image/jpeg", "<script>alert(1)</script>".getBytes());
+        assertThat(
+                        http.perform(
+                                        multipart("/api/product-images")
+                                                .file(falsa)
+                                                .cookie(merchant.cookie())
+                                                .header("X-CSRF-Token", merchant.csrf()))
+                                .andReturn()
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(400);
+        assertThat(
+                        http.perform(
+                                        multipart("/api/product-images")
+                                                .file(archivo)
+                                                .cookie(merchant.cookie()))
+                                .andReturn()
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(403);
+        assertThat(
+                        solicitud(patch("/api/products/1"), merchant, Map.of("image", ""))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(400);
+    }
+
+    @Test
+    void imageUploadRejectsHugeDimensionsAndCustomersCannotUpload() throws Exception {
+        var enorme =
+                new java.awt.image.BufferedImage(
+                        13000, 16, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        var bytes = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(enorme, "png", bytes);
+        var archivo =
+                new org.springframework.mock.web.MockMultipartFile(
+                        "file", "grande.png", "image/png", bytes.toByteArray());
+        assertThat(
+                        http.perform(
+                                        multipart("/api/product-images")
+                                                .file(archivo)
+                                                .cookie(merchant.cookie())
+                                                .header("X-CSRF-Token", merchant.csrf()))
+                                .andReturn()
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(400);
+        Session cliente = login("cliente");
+        assertThat(
+                        http.perform(
+                                        multipart("/api/product-images")
+                                                .file(archivo)
+                                                .cookie(cliente.cookie())
+                                                .header("X-CSRF-Token", cliente.csrf()))
+                                .andReturn()
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(403);
+        assertThat(count("product_images")).isZero();
+    }
+
+    @Test
+    void privacyRequestBlocksPurchasesAndDebtBlocksDataRemoval() throws Exception {
+        Session cliente = login("cliente");
+        assertThat(
+                        solicitud(
+                                        post("/api/privacy/request"),
+                                        cliente,
+                                        Map.of("password", "PruebaSegura2026!"))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(200);
+        assertThat(
+                        solicitud(
+                                        post("/api/sales/preview"),
+                                        merchant,
+                                        venta("2026-10-28T10:00:00", "1"))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(400);
+        database.update("UPDATE customers SET erase_requested_at='2020-01-01T00:00:00'");
+        database.update("UPDATE sales SET created_at='2020-01-01T00:00:00'");
+        var privacidad = json(solicitud(get("/api/privacy"), cliente, null));
+        assertThat(privacidad.get("customers").get(0).get("status").asText()).isEqualTo("debt");
+        assertThat(
+                        json(solicitud(
+                                        post("/api/privacy/process"),
+                                        merchant,
+                                        Map.of("password", "PruebaSegura2026!")))
+                                .get("processed")
+                                .asInt())
+                .isZero();
+        assertThat(database.queryForObject("SELECT email FROM customers WHERE id=1", String.class))
+                .isEqualTo("maria@example.com");
+        assertThat(
+                        solicitud(
+                                        post("/api/privacy/cancel"),
+                                        cliente,
+                                        Map.of("password", "PruebaSegura2026!"))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(200);
+        assertThat(
+                        solicitud(
+                                        post("/api/sales/preview"),
+                                        merchant,
+                                        venta("2026-10-28T10:00:00", "1"))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(200);
+    }
+
+    @Test
+    void privacyPurgesPersonalCopiesAndSessionsButKeepsFinancialHistory() throws Exception {
+        Session cliente = login("cliente");
+        estados.cerrarPendientes();
+        assertThat(count("statements")).isPositive();
+        database.update(
+                "INSERT INTO"
+                    + " payments(id,store_id,customer_id,paid_at,base_amount,late_amount,amount,currency)"
+                    + " VALUES(1,1,1,'2026-10-29T10:00:00','220','0','220','PEN')");
+        database.update("UPDATE dues SET payment_id=1");
+        database.update("UPDATE customers SET erase_requested_at='2020-01-01T00:00:00'");
+        database.update("UPDATE sales SET created_at='2020-01-01T00:00:00'");
+        assertThat(
+                        json(solicitud(get("/api/privacy"), cliente, null))
+                                .get("customers")
+                                .get(0)
+                                .get("status")
+                                .asText())
+                .isEqualTo("waiting");
+        database.update("UPDATE payments SET paid_at='2020-01-01T00:00:00'");
+        assertThat(
+                        json(solicitud(
+                                        post("/api/privacy/process"),
+                                        merchant,
+                                        Map.of("password", "PruebaSegura2026!")))
+                                .get("processed")
+                                .asInt())
+                .isEqualTo(1);
+        var registro =
+                database.queryForMap(
+                        "SELECT name,email,phone,document,active,anonymized_at FROM customers WHERE"
+                                + " id=1");
+        assertThat(registro.get("name")).isEqualTo("Cliente retirado #1");
+        assertThat(registro.get("email")).isEqualTo("");
+        assertThat(registro.get("phone")).isEqualTo("");
+        assertThat(registro.get("document").toString()).startsWith("retirado-");
+        assertThat(registro.get("anonymized_at")).isNotNull();
+        assertThat(solicitud(get("/api/me"), cliente, null).getResponse().getStatus())
+                .isEqualTo(401);
+        assertThat(count("sales")).isEqualTo(2);
+        assertThat(count("dues")).isEqualTo(4);
+        assertThat(count("payments")).isEqualTo(1);
+        for (String copia : database.queryForList("SELECT snapshot FROM statements", String.class))
+            assertThat(copia)
+                    .doesNotContain("María Flores", "maria@example.com", "999000111", "00000001")
+                    .contains("Cliente retirado #1");
+        assertThat(
+                        database.queryForObject(
+                                "SELECT detail FROM audit WHERE action='Cliente registrado'",
+                                String.class))
+                .isEmpty();
+        assertThat(
+                        solicitud(patch("/api/customers/1"), merchant, Map.of("active", true))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(400);
+        assertThat(
+                        json(solicitud(
+                                        post("/api/privacy/process"),
+                                        merchant,
+                                        Map.of("password", "PruebaSegura2026!")))
+                                .get("processed")
+                                .asInt())
+                .isZero();
+    }
+
+    @Test
+    void privacyExportIsPersonalAndPolicyCannotExtendExistingConsent() throws Exception {
+        assertThat(
+                        solicitud(post("/api/customers"), merchant, newCustomer())
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(200);
+        Session cliente = login("cliente");
+        JsonNode exportacion = json(solicitud(get("/api/privacy/export"), cliente, null));
+        assertThat(exportacion.get("customers").size()).isEqualTo(1);
+        assertThat(exportacion.toString())
+                .doesNotContain("Cliente de prueba", "password", "csrf", "secret");
+        assertThat(
+                        solicitud(
+                                        post("/api/privacy/policy"),
+                                        cliente,
+                                        Map.of(
+                                                "retention_days",
+                                                365,
+                                                "contact",
+                                                "tienda@example.com",
+                                                "password",
+                                                "PruebaSegura2026!"))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(403);
+        assertThat(
+                        solicitud(
+                                        post("/api/privacy/policy"),
+                                        merchant,
+                                        Map.of(
+                                                "retention_days",
+                                                365,
+                                                "contact",
+                                                "tienda@example.com",
+                                                "password",
+                                                "PruebaSegura2026!"))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(200);
+        assertThat(
+                        json(solicitud(get("/api/privacy"), cliente, null))
+                                .get("customers")
+                                .get(0)
+                                .get("retention_days")
+                                .asInt())
+                .isEqualTo(180);
+        solicitud(
+                post("/api/privacy/policy"),
+                merchant,
+                Map.of("retention_days", 90, "contact", "", "password", "PruebaSegura2026!"));
+        solicitud(
+                post("/api/privacy/policy"),
+                merchant,
+                Map.of("retention_days", 365, "contact", "", "password", "PruebaSegura2026!"));
+        assertThat(
+                        json(solicitud(get("/api/privacy"), cliente, null))
+                                .get("customers")
+                                .get(0)
+                                .get("retention_days")
+                                .asInt())
+                .isEqualTo(90);
+        assertThat(
+                        solicitud(
+                                        post("/api/privacy/policy"),
+                                        merchant,
+                                        Map.of(
+                                                "retention_days",
+                                                1,
+                                                "contact",
+                                                "",
+                                                "password",
+                                                "PruebaSegura2026!"))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(400);
+    }
+
+    @Test
+    void inactiveCustomerRetainsDataUntilTheLatestRequestOrDeactivationExpires() throws Exception {
+        long id =
+                json(solicitud(post("/api/customers"), merchant, newCustomer())).get("id").asLong();
+        assertThat(
+                        solicitud(patch("/api/customers/" + id), merchant, Map.of("active", false))
+                                .getResponse()
+                                .getStatus())
+                .isEqualTo(200);
+        database.update(
+                "UPDATE customers SET erase_requested_at='2020-01-01T00:00:00' WHERE id=?", id);
+        assertThat(
+                        json(solicitud(
+                                        post("/api/privacy/process"),
+                                        merchant,
+                                        Map.of("password", "PruebaSegura2026!")))
+                                .get("processed")
+                                .asInt())
+                .isZero();
+        database.update(
+                "UPDATE customers SET"
+                    + " inactive_since='2020-01-01T00:00:00',erase_requested_at='2026-10-29T10:00:00'"
+                    + " WHERE id=?",
+                id);
+        assertThat(
+                        json(solicitud(
+                                        post("/api/privacy/process"),
+                                        merchant,
+                                        Map.of("password", "PruebaSegura2026!")))
+                                .get("processed")
+                                .asInt())
+                .isZero();
+        database.update(
+                "UPDATE customers SET erase_requested_at='2020-01-01T00:00:00' WHERE id=?", id);
+        assertThat(
+                        json(solicitud(
+                                        post("/api/privacy/process"),
+                                        merchant,
+                                        Map.of("password", "PruebaSegura2026!")))
+                                .get("processed")
+                                .asInt())
+                .isEqualTo(1);
+        assertThat(
+                        database.queryForObject(
+                                "SELECT email FROM customers WHERE id=?", String.class, id))
+                .isEmpty();
+    }
+
+    JsonNode activarMfa() throws Exception {
+        var setup =
+                json(
+                        solicitud(
+                                post("/api/security/mfa/setup"),
+                                merchant,
+                                Map.of("password", "PruebaSegura2026!")));
+        var resultado =
+                solicitud(
+                        post("/api/security/mfa/confirm"),
+                        merchant,
+                        Map.of("codigo", codigoOtp(setup.get("secret").asText(), 0)));
+        assertThat(resultado.getResponse().getStatus()).isEqualTo(200);
+        return json(resultado).get("recovery_codes");
+    }
+
+    MvcResult primerPasoMfa() throws Exception {
+        var desafio = json(http.perform(get("/api/challenge")).andReturn());
+        return http.perform(
+                        post("/api/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(loginBody("tienda", "PruebaSegura2026!", desafio)))
+                .andReturn();
+    }
+
+    MvcResult segundoPasoMfa(String token, String codigo) throws Exception {
+        return http.perform(
+                        post("/api/login/mfa")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        mapper.writeValueAsString(
+                                                Map.of("token", token, "codigo", codigo))))
+                .andReturn();
+    }
+
+    String codigoOtp(String secreto, int desfase) throws Exception {
+        // Referencia HOTP/TOTP de RFC 4226/6238, independiente del generador usado por el servicio.
+        long paso = Instant.parse("2026-10-29T17:00:00Z").getEpochSecond() / 30 + desfase;
+        var mac = javax.crypto.Mac.getInstance("HmacSHA1");
+        mac.init(
+                new javax.crypto.spec.SecretKeySpec(
+                        new org.apache.commons.codec.binary.Base32().decode(secreto), "HmacSHA1"));
+        byte[] hash = mac.doFinal(java.nio.ByteBuffer.allocate(8).putLong(paso).array());
+        int offset = hash[hash.length - 1] & 15;
+        int binario = java.nio.ByteBuffer.wrap(hash, offset, 4).getInt() & 0x7fffffff;
+        return String.format(java.util.Locale.ROOT, "%06d", binario % 1_000_000);
     }
 
     int count(String table) {

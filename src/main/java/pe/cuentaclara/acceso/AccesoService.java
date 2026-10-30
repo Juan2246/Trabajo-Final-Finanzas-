@@ -14,6 +14,8 @@ import java.util.Map;
 
 @Service
 public class AccesoService {
+    private final SegundoFactorService segundoFactor;
+    private final SesionService servicioSesion;
     private final UsuarioRepository usuarios;
     private final SesionRepository sesiones;
     private final VerificacionAccesoRepository verificaciones;
@@ -23,6 +25,8 @@ public class AccesoService {
     private final AuditoriaService auditoria;
 
     public AccesoService(
+            SegundoFactorService segundoFactor,
+            SesionService servicioSesion,
             UsuarioRepository usuarios,
             SesionRepository sesiones,
             VerificacionAccesoRepository verificaciones,
@@ -30,6 +34,8 @@ public class AccesoService {
             ContrasenaService contrasenas,
             RelojNegocioComponent reloj,
             AuditoriaService auditoria) {
+        this.segundoFactor = segundoFactor;
+        this.servicioSesion = servicioSesion;
         this.usuarios = usuarios;
         this.sesiones = sesiones;
         this.verificaciones = verificaciones;
@@ -52,7 +58,7 @@ public class AccesoService {
     }
 
     @Transactional(noRollbackFor = AccesoFallidoException.class)
-    public UsuarioActualPrincipal login(AccesoEntradaDTO solicitud, String ip) {
+    public AccesoResultadoDTO login(AccesoEntradaDTO solicitud, String ip) {
         long now = reloj.segundosEpoch();
         String username = solicitud.username().strip();
         List<String> keys =
@@ -99,24 +105,9 @@ public class AccesoService {
         intentos.findById(keys.getFirst()).ifPresent(intentos::delete);
         if (contrasenas.necesitaActualizarHash(usuario.getPassword()))
             usuario.setPassword(contrasenas.generarHash(solicitud.password()));
-        sesiones.deleteByVenceEnLessThan(now);
-        SesionEntity sesion = new SesionEntity();
-        sesion.setToken(TokensAleatoriosUtil.token(48));
-        sesion.setCsrf(TokensAleatoriosUtil.token(32));
-        sesion.setUsuario(usuario);
-        sesion.setVenceEn(now + 28800);
-        sesiones.save(sesion);
-        Long tiendaId = usuario.getTienda() == null ? null : usuario.getTienda().getId();
-        auditoria.registrar(usuario.getId(), tiendaId, "Inicio de sesión", null, "");
-        return new UsuarioActualPrincipal(
-                usuario.getId(),
-                usuario.getUsername(),
-                usuario.getNombre(),
-                usuario.getRole(),
-                tiendaId,
-                usuario.getCliente() == null ? null : usuario.getCliente().getId(),
-                sesion.getToken(),
-                sesion.getCsrf());
+        String tokenMfa = segundoFactor.iniciarAcceso(usuario);
+        return new AccesoResultadoDTO(
+                tokenMfa == null ? servicioSesion.abrir(usuario) : null, tokenMfa);
     }
 
     @Transactional

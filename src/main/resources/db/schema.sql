@@ -77,3 +77,28 @@ CREATE TABLE IF NOT EXISTS statements (
  customer_id INTEGER NOT NULL REFERENCES customers(id), cycle TEXT NOT NULL,
  snapshot TEXT NOT NULL, generated_at TEXT NOT NULL, UNIQUE(customer_id,cycle)
 );
+
+CREATE TABLE IF NOT EXISTS second_factors (
+ user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+ secret TEXT, pending_secret TEXT, pending_until INTEGER NOT NULL DEFAULT 0,
+ last_step INTEGER NOT NULL DEFAULT -1, enabled_at TEXT,
+ attempts INTEGER NOT NULL DEFAULT 0, blocked_until INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS login_steps (
+ token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ credential_version TEXT NOT NULL, expires_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS login_steps_user ON login_steps(user_id);
+CREATE TABLE IF NOT EXISTS recovery_codes (
+ code_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS recovery_codes_user ON recovery_codes(user_id);
+CREATE TABLE IF NOT EXISTS privacy_policies (
+ store_id INTEGER PRIMARY KEY REFERENCES stores(id), retention_days INTEGER NOT NULL DEFAULT 180,
+ contact TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS product_images (
+ id TEXT PRIMARY KEY, store_id INTEGER NOT NULL REFERENCES stores(id), content BLOB NOT NULL,
+ mime TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS product_images_store ON product_images(store_id);
