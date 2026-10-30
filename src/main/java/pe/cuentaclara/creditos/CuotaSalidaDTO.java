@@ -3,7 +3,7 @@ package pe.cuentaclara.creditos;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
-import pe.cuentaclara.finanzas.CondicionesCredito;
+import pe.cuentaclara.finanzas.CondicionesCreditoDTO;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,4 +30,4 @@ public record CuotaSalidaDTO(
         @JsonProperty("late_as_of") LocalDate fechaCalculoMora,
         @JsonProperty("interest_days") int diasInteres,
         BigDecimal total,
-        @JsonUnwrapped CondicionesCredito condiciones) {}
+        @JsonUnwrapped CondicionesCreditoDTO condiciones) {}

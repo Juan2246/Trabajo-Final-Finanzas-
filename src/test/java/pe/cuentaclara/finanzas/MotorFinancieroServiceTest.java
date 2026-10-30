@@ -19,8 +19,8 @@ import java.time.LocalDateTime;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-class MotorFinancieroTest {
-    private final MotorFinanciero engine = new MotorFinanciero();
+class MotorFinancieroServiceTest {
+    private final MotorFinancieroService engine = new MotorFinancieroService();
     private final ObjectMapper json =
             new ObjectMapper()
                     .registerModule(new JavaTimeModule())
@@ -48,10 +48,10 @@ class MotorFinancieroTest {
                                                 + " "
                                                 + fixture.get("terms").get("rate"),
                                         () -> {
-                                            CondicionesCredito condiciones =
+                                            CondicionesCreditoDTO condiciones =
                                                     json.treeToValue(
                                                             fixture.get("terms"),
-                                                            CondicionesCredito.class);
+                                                            CondicionesCreditoDTO.class);
                                             var result =
                                                     engine.calcularPlanPagos(
                                                             new BigDecimal(
@@ -69,8 +69,8 @@ class MotorFinancieroTest {
                                         }));
     }
 
-    private CondicionesCredito condiciones() {
-        return new CondicionesCredito(
+    private CondicionesCreditoDTO condiciones() {
+        return new CondicionesCreditoDTO(
                 new BigDecimal("24"),
                 "effective",
                 360,
@@ -109,7 +109,7 @@ class MotorFinancieroTest {
     void sameDayPaymentHasNoMora() {
         var day = LocalDate.of(2026, 10, 26);
         assertEquals(
-                new MotorFinanciero.MoraCalculada(new BigDecimal("0.00"), 0),
+                new MotorFinancieroService.MoraCalculada(new BigDecimal("0.00"), 0),
                 engine.calcularMora(new BigDecimal("100"), day, day, condiciones()));
     }
 

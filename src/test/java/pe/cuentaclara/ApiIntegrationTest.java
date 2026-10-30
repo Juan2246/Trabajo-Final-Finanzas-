@@ -29,7 +29,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import pe.cuentaclara.estados.EstadoCuentaService;
-import pe.cuentaclara.inicio.InicializadorDatos;
+import pe.cuentaclara.inicio.InicializadorDatosRunner;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -69,7 +69,7 @@ class ApiIntegrationTest {
     @Autowired MockMvc http;
     @Autowired ObjectMapper mapper;
     @Autowired JdbcTemplate database;
-    @Autowired InicializadorDatos initializer;
+    @Autowired InicializadorDatosRunner initializer;
     @Autowired EstadoCuentaService estados;
 
     @AfterAll

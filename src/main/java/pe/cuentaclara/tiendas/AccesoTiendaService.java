@@ -2,8 +2,8 @@ package pe.cuentaclara.tiendas;
 
 import org.springframework.stereotype.Service;
 
-import pe.cuentaclara.acceso.UsuarioActual;
-import pe.cuentaclara.clientes.Cliente;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
+import pe.cuentaclara.clientes.ClienteEntity;
 import pe.cuentaclara.clientes.ClienteRepository;
 import pe.cuentaclara.comun.ReglaNegocioException;
 
@@ -17,13 +17,14 @@ public class AccesoTiendaService {
         this.clientes = clientes;
     }
 
-    public Tienda resolverTienda(UsuarioActual usuario, Long tiendaSeleccionada, boolean required) {
+    public TiendaEntity resolverTienda(
+            UsuarioActualPrincipal usuario, Long tiendaSeleccionada, boolean required) {
         Long id = usuario.esPlataforma() ? tiendaSeleccionada : usuario.tiendaId();
         if (id == null) {
             if (required) throw new ReglaNegocioException("Primero selecciona una tienda.");
             return null;
         }
-        Tienda tienda =
+        TiendaEntity tienda =
                 tiendas.findById(id)
                         .orElseThrow(
                                 () ->
@@ -34,8 +35,8 @@ public class AccesoTiendaService {
         return tienda;
     }
 
-    public Cliente buscarCliente(Long id, Long tiendaId) {
-        Cliente cliente =
+    public ClienteEntity buscarCliente(Long id, Long tiendaId) {
+        ClienteEntity cliente =
                 clientes.findById(id)
                         .orElseThrow(
                                 () -> new ReglaNegocioException("No se encontró el cliente.", 404));
@@ -44,7 +45,7 @@ public class AccesoTiendaService {
         return cliente;
     }
 
-    public void validarCliente(UsuarioActual usuario, Long clienteId) {
+    public void validarCliente(UsuarioActualPrincipal usuario, Long clienteId) {
         if (usuario.esCliente() && !usuario.clienteId().equals(clienteId))
             throw new ReglaNegocioException("Solo puedes consultar tu cuenta.", 403);
     }

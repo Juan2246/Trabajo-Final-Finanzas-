@@ -1,6 +1,6 @@
 # Algoritmos y flujo del negocio
 
-El pseudocódigo siguiente describe el cálculo; los diagramas posteriores describen las actividades. Implementación: `finanzas/MotorFinanciero.java` y los servicios de `creditos`, `pagos` y `estados`.
+El pseudocódigo siguiente describe el cálculo; los diagramas posteriores describen las actividades. Implementación: `finanzas/MotorFinancieroService.java` y los servicios de `creditos`, `pagos` y `estados`.
 
 ## Factor de acumulación
 

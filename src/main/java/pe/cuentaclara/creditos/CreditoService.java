@@ -3,20 +3,20 @@ package pe.cuentaclara.creditos;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import pe.cuentaclara.acceso.UsuarioActual;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
 import pe.cuentaclara.auditoria.AuditoriaService;
-import pe.cuentaclara.catalogo.Producto;
+import pe.cuentaclara.catalogo.ProductoEntity;
 import pe.cuentaclara.catalogo.ProductoService;
-import pe.cuentaclara.clientes.Cliente;
+import pe.cuentaclara.clientes.ClienteEntity;
 import pe.cuentaclara.comun.ReglaNegocioException;
-import pe.cuentaclara.comun.RelojNegocio;
-import pe.cuentaclara.comun.SoporteJson;
+import pe.cuentaclara.comun.RelojNegocioComponent;
+import pe.cuentaclara.comun.SoporteJsonComponent;
 import pe.cuentaclara.estados.EstadoCerradoRepository;
-import pe.cuentaclara.finanzas.CondicionesCredito;
-import pe.cuentaclara.finanzas.MotorFinanciero;
-import pe.cuentaclara.finanzas.PlanPagos;
+import pe.cuentaclara.finanzas.CondicionesCreditoDTO;
+import pe.cuentaclara.finanzas.MotorFinancieroService;
+import pe.cuentaclara.finanzas.PlanPagosDTO;
 import pe.cuentaclara.tiendas.AccesoTiendaService;
-import pe.cuentaclara.tiendas.Tienda;
+import pe.cuentaclara.tiendas.TiendaEntity;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -32,11 +32,11 @@ public class CreditoService {
     private final AccesoTiendaService acceso;
     private final ProductoService productos;
     private final SaldoCreditoService saldos;
-    private final MotorFinanciero finanzas;
+    private final MotorFinancieroService finanzas;
     private final EstadoCerradoRepository estados;
     private final AuditoriaService auditoria;
-    private final RelojNegocio reloj;
-    private final SoporteJson json;
+    private final RelojNegocioComponent reloj;
+    private final SoporteJsonComponent json;
 
     public CreditoService(
             VentaCreditoRepository ventas,
@@ -45,11 +45,11 @@ public class CreditoService {
             AccesoTiendaService acceso,
             ProductoService productos,
             SaldoCreditoService saldos,
-            MotorFinanciero finanzas,
+            MotorFinancieroService finanzas,
             EstadoCerradoRepository estados,
             AuditoriaService auditoria,
-            RelojNegocio reloj,
-            SoporteJson json) {
+            RelojNegocioComponent reloj,
+            SoporteJsonComponent json) {
         this.ventas = ventas;
         this.detalles = detalles;
         this.cuotas = cuotas;
@@ -64,8 +64,8 @@ public class CreditoService {
     }
 
     private record CalculoVenta(
-            Cliente cliente,
-            PlanPagos planPagos,
+            ClienteEntity cliente,
+            PlanPagosDTO planPagos,
             List<DetalleVentaSalidaDTO> lineas,
             BigDecimal importe,
             BigDecimal disponible,
@@ -85,15 +85,19 @@ public class CreditoService {
 
     @Transactional(readOnly = true)
     public SimulacionVentaDTO simular(
-            UsuarioActual usuarioActual, Long tiendaSeleccionada, VentaEntradaDTO solicitud) {
-        Tienda tienda = acceso.resolverTienda(usuarioActual, tiendaSeleccionada, true);
+            UsuarioActualPrincipal usuarioActual,
+            Long tiendaSeleccionada,
+            VentaEntradaDTO solicitud) {
+        TiendaEntity tienda = acceso.resolverTienda(usuarioActual, tiendaSeleccionada, true);
         return calcular(tienda, solicitud).simular(null, solicitud);
     }
 
     @Transactional
     public SimulacionVentaDTO crear(
-            UsuarioActual usuarioActual, Long tiendaSeleccionada, VentaEntradaDTO solicitud) {
-        Tienda tienda = acceso.resolverTienda(usuarioActual, tiendaSeleccionada, true);
+            UsuarioActualPrincipal usuarioActual,
+            Long tiendaSeleccionada,
+            VentaEntradaDTO solicitud) {
+        TiendaEntity tienda = acceso.resolverTienda(usuarioActual, tiendaSeleccionada, true);
         CalculoVenta calculo = calcular(tienda, solicitud);
         SimulacionVentaDTO simulacion = calculo.simular(null, solicitud);
         if (solicitud.planAceptado() != null) {
@@ -117,7 +121,7 @@ public class CreditoService {
                         "El acuerdo cambió desde la simulación. Vuelve a calcular las cuotas.",
                         409);
         }
-        VentaCredito venta = new VentaCredito();
+        VentaCreditoEntity venta = new VentaCreditoEntity();
         venta.setTienda(tienda);
         venta.setCliente(calculo.cliente());
         venta.setFechaCompra(solicitud.fechaCompra());
@@ -128,12 +132,12 @@ public class CreditoService {
         venta.setDiasGracia(calculo.planPagos().diasGracia());
         venta.setInteresGracia(calculo.planPagos().interesGracia());
         venta.setMoneda(calculo.cliente().getMoneda());
-        venta.setCondicionesJson(json.escribir(CondicionesCredito.desde(calculo.cliente())));
+        venta.setCondicionesJson(json.escribir(CondicionesCreditoDTO.desde(calculo.cliente())));
         venta.setCiclo(calculo.planPagos().ciclo());
         venta.setFechaCreacion(reloj.ahora());
         ventas.saveAndFlush(venta);
         for (DetalleVentaSalidaDTO linea : calculo.lineas()) {
-            DetalleVenta detalle = new DetalleVenta();
+            DetalleVentaEntity detalle = new DetalleVentaEntity();
             detalle.setVenta(venta);
             detalle.setProducto(productos.buscar(linea.productoId(), tienda.getId()));
             detalle.setNombre(linea.nombre());
@@ -143,7 +147,7 @@ public class CreditoService {
             detalles.save(detalle);
         }
         for (var calculada : calculo.planPagos().cuotas()) {
-            Cuota cuota = new Cuota();
+            CuotaEntity cuota = new CuotaEntity();
             cuota.setVenta(venta);
             cuota.setNumero(calculada.numero());
             cuota.setFechaVencimiento(calculada.fecha());
@@ -161,8 +165,8 @@ public class CreditoService {
         return calculo.simular(venta.getId(), solicitud);
     }
 
-    private CalculoVenta calcular(Tienda tienda, VentaEntradaDTO solicitud) {
-        Cliente cliente = acceso.buscarCliente(solicitud.clienteId(), tienda.getId());
+    private CalculoVenta calcular(TiendaEntity tienda, VentaEntradaDTO solicitud) {
+        ClienteEntity cliente = acceso.buscarCliente(solicitud.clienteId(), tienda.getId());
         if (!cliente.getActivo()) throw new ReglaNegocioException("El cliente está desactivado.");
         if (solicitud.fechaCompra().isAfter(reloj.ahora())
                 || solicitud.fechaCompra().isBefore(reloj.ahora().minusDays(3650)))
@@ -176,7 +180,7 @@ public class CreditoService {
         var seen = new HashSet<Long>();
         BigDecimal total = BigDecimal.ZERO;
         for (VentaEntradaDTO.LineaVentaDTO input : solicitud.detalles()) {
-            Producto producto = productos.buscar(input.productoId(), tienda.getId());
+            ProductoEntity producto = productos.buscar(input.productoId(), tienda.getId());
             if (!seen.add(producto.getId()))
                 throw new ReglaNegocioException("Agrupa las cantidades de un mismo producto.");
             if (!producto.getActivo() || !producto.getMoneda().equals(cliente.getMoneda()))
@@ -185,7 +189,7 @@ public class CreditoService {
             if (solicitud.modalidad().equals("installments") && !producto.getPermiteCuotas())
                 throw new ReglaNegocioException("Este producto solo se puede pagar al cierre.");
             BigDecimal subtotal =
-                    MotorFinanciero.redondearImporte(
+                    MotorFinancieroService.redondearImporte(
                             input.cantidad().multiply(producto.getPrecioCredito()));
             if (subtotal.signum() <= 0)
                 throw new ReglaNegocioException("El subtotal debe ser mayor que cero.");
@@ -202,15 +206,15 @@ public class CreditoService {
         }
         if (total.compareTo(new BigDecimal("10000000")) > 0)
             throw new ReglaNegocioException("El importe supera el máximo permitido.");
-        PlanPagos planPagos =
+        PlanPagosDTO planPagos =
                 finanzas.calcularPlanPagos(
                         total,
                         solicitud.fechaCompra(),
-                        CondicionesCredito.desde(cliente),
+                        CondicionesCreditoDTO.desde(cliente),
                         solicitud.modalidad(),
                         meses);
         BigDecimal disponible =
-                MotorFinanciero.redondearImporte(
+                MotorFinancieroService.redondearImporte(
                         cliente.getLimiteCredito()
                                 .subtract(saldos.capitalPendiente(cliente.getId())));
         if (planPagos.capitalFinanciado().compareTo(disponible) > 0)
@@ -227,7 +231,7 @@ public class CreditoService {
                 cliente,
                 planPagos,
                 List.copyOf(lineas),
-                MotorFinanciero.redondearImporte(total),
+                MotorFinancieroService.redondearImporte(total),
                 disponible,
                 meses);
     }

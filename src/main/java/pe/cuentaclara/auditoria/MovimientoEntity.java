@@ -2,14 +2,14 @@ package pe.cuentaclara.auditoria;
 
 import jakarta.persistence.*;
 
-import pe.cuentaclara.acceso.Usuario;
+import pe.cuentaclara.acceso.UsuarioEntity;
 
 import java.time.LocalDateTime;
 
 /** Usuario, acción y fecha de cada operación. */
 @Entity
 @Table(name = "audit")
-public class Movimiento {
+public class MovimientoEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -17,7 +17,7 @@ public class Movimiento {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private Usuario usuario;
+    private UsuarioEntity usuario;
 
     @Column(name = "store_id")
     private Long tiendaId;
@@ -42,11 +42,11 @@ public class Movimiento {
         this.id = id;
     }
 
-    public Usuario getUsuario() {
+    public UsuarioEntity getUsuario() {
         return usuario;
     }
 
-    public void setUsuario(Usuario usuario) {
+    public void setUsuario(UsuarioEntity usuario) {
         this.usuario = usuario;
     }
 

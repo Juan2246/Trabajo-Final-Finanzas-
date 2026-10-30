@@ -3,22 +3,22 @@ package pe.cuentaclara.acceso;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import pe.cuentaclara.comun.RelojNegocio;
+import pe.cuentaclara.comun.RelojNegocioComponent;
 
 import java.util.Optional;
 
 @Service
 public class SesionService {
     private final SesionRepository sesiones;
-    private final RelojNegocio reloj;
+    private final RelojNegocioComponent reloj;
 
-    public SesionService(SesionRepository sesiones, RelojNegocio reloj) {
+    public SesionService(SesionRepository sesiones, RelojNegocioComponent reloj) {
         this.sesiones = sesiones;
         this.reloj = reloj;
     }
 
     @Transactional(readOnly = true)
-    public Optional<UsuarioActual> buscarSesion(String token) {
+    public Optional<UsuarioActualPrincipal> buscarSesion(String token) {
         if (token == null || token.length() > 128) return Optional.empty();
         return sesiones.findById(token)
                 .filter(sesion -> sesion.getVenceEn() > reloj.segundosEpoch())
@@ -30,8 +30,8 @@ public class SesionService {
                                                 sesion.getUsuario().getTienda().getActivo()))
                 .map(
                         sesion -> {
-                            Usuario usuario = sesion.getUsuario();
-                            return new UsuarioActual(
+                            UsuarioEntity usuario = sesion.getUsuario();
+                            return new UsuarioActualPrincipal(
                                     usuario.getId(),
                                     usuario.getUsername(),
                                     usuario.getNombre(),

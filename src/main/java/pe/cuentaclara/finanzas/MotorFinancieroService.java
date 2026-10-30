@@ -2,7 +2,7 @@ package pe.cuentaclara.finanzas;
 
 import ch.obermuhlner.math.big.BigDecimalMath;
 
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import pe.cuentaclara.comun.ReglaNegocioException;
 
@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Set;
 
 /** Método francés vencido y acumulación en base comercial 30/360. */
-@Component
-public class MotorFinanciero {
+@Service
+public class MotorFinancieroService {
     private static final MathContext PRECISION = new MathContext(36, RoundingMode.HALF_UP);
     private static final BigDecimal ONE = BigDecimal.ONE;
     private static final Set<Integer> FRECUENCIAS = Set.of(1, 2, 4, 6, 12, 24, 360);
@@ -83,10 +83,10 @@ public class MotorFinanciero {
         return new FechasCiclo(ciclo, fechaDelMes(ciclo, diaPago >= diaCorte ? 0 : 1, diaPago));
     }
 
-    public PlanPagos calcularPlanPagos(
+    public PlanPagosDTO calcularPlanPagos(
             BigDecimal importeCompra,
             LocalDateTime fechaCompra,
-            CondicionesCredito condiciones,
+            CondicionesCreditoDTO condiciones,
             String modalidad,
             int meses) {
         BigDecimal capital = redondearImporte(importeCompra);
@@ -122,13 +122,13 @@ public class MotorFinanciero {
                                         condiciones.frecuencia()),
                                 PRECISION));
         if (modalidad.equals("end")) {
-            return new PlanPagos(
+            return new PlanPagosDTO(
                     fechasCiclo.ciclo(),
                     0,
                     redondearImporte(BigDecimal.ZERO),
                     capital,
                     List.of(
-                            new CuotaCalculada(
+                            new CuotaCalculadaDTO(
                                     1,
                                     fechasCiclo.pago(),
                                     capital,
@@ -159,7 +159,7 @@ public class MotorFinanciero {
                                                 PRECISION));
         validar(pago.signum() > 0, "El importe es demasiado pequeño para ese plazo.");
         BigDecimal saldo = capitalFinanciado;
-        List<CuotaCalculada> cuotas = new ArrayList<>();
+        List<CuotaCalculadaDTO> cuotas = new ArrayList<>();
         for (int numero = 1; numero <= meses; numero++) {
             BigDecimal interes = redondearImporte(saldo.multiply(tasaMensual, PRECISION));
             BigDecimal amortizacion =
@@ -171,7 +171,7 @@ public class MotorFinanciero {
                     numero == meses || amortizacion.compareTo(saldo) != 0,
                     "El importe es demasiado pequeño para ese plazo.");
             cuotas.add(
-                    new CuotaCalculada(
+                    new CuotaCalculadaDTO(
                             numero,
                             fechaDelMes(fechasCiclo.pago(), numero, condiciones.diaPago()),
                             amortizacion,
@@ -179,7 +179,7 @@ public class MotorFinanciero {
                             redondearImporte(amortizacion.add(interes))));
             saldo = redondearImporte(saldo.subtract(amortizacion));
         }
-        return new PlanPagos(
+        return new PlanPagosDTO(
                 fechasCiclo.ciclo(),
                 dias,
                 capitalFinanciado.subtract(capital),
@@ -191,7 +191,7 @@ public class MotorFinanciero {
             BigDecimal importe,
             LocalDate fechaVencimiento,
             LocalDate fechaPago,
-            CondicionesCredito condiciones) {
+            CondicionesCreditoDTO condiciones) {
         validar(importe.signum() >= 0, "La deuda no puede ser negativa.");
         if (!fechaPago.isAfter(fechaVencimiento))
             return new MoraCalculada(redondearImporte(BigDecimal.ZERO), 0);

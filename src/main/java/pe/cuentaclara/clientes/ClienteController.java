@@ -8,7 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import pe.cuentaclara.acceso.UsuarioActual;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
 
 import java.util.Map;
 
@@ -24,7 +24,7 @@ public class ClienteController {
 
     @PostMapping(consumes = "application/json")
     public Map<String, Long> crear(
-            @AuthenticationPrincipal UsuarioActual usuario,
+            @AuthenticationPrincipal UsuarioActualPrincipal usuario,
             @RequestParam(name = "store_id", required = false) Long tiendaId,
             @Valid @RequestBody ClienteEntradaDTO solicitud) {
         return Map.of("id", clientes.crear(usuario, tiendaId, solicitud));
@@ -32,7 +32,7 @@ public class ClienteController {
 
     @PatchMapping(value = "/{id}", consumes = "application/json")
     public Map<String, Boolean> actualizar(
-            @AuthenticationPrincipal UsuarioActual usuario,
+            @AuthenticationPrincipal UsuarioActualPrincipal usuario,
             @RequestParam(name = "store_id", required = false) Long tiendaId,
             @PathVariable Long id,
             @RequestBody JsonNode patch) {

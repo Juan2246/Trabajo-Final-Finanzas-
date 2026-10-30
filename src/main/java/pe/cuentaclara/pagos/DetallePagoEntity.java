@@ -2,14 +2,14 @@ package pe.cuentaclara.pagos;
 
 import jakarta.persistence.*;
 
-import pe.cuentaclara.creditos.Cuota;
+import pe.cuentaclara.creditos.CuotaEntity;
 
 import java.math.BigDecimal;
 
 /** Mora y días de atraso conservados al cobrar. */
 @Entity
 @Table(name = "payment_lines")
-public class DetallePago {
+public class DetallePagoEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -17,11 +17,11 @@ public class DetallePago {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_id")
-    private Pago pago;
+    private PagoEntity pago;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "due_id")
-    private Cuota cuota;
+    private CuotaEntity cuota;
 
     @Column(name = "late_days")
     private Integer diasMora;
@@ -37,19 +37,19 @@ public class DetallePago {
         this.id = id;
     }
 
-    public Pago getPago() {
+    public PagoEntity getPago() {
         return pago;
     }
 
-    public void setPago(Pago pago) {
+    public void setPago(PagoEntity pago) {
         this.pago = pago;
     }
 
-    public Cuota getCuota() {
+    public CuotaEntity getCuota() {
         return cuota;
     }
 
-    public void setCuota(Cuota cuota) {
+    public void setCuota(CuotaEntity cuota) {
         this.cuota = cuota;
     }
 

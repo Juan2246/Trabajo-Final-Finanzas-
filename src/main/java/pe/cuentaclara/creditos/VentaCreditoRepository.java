@@ -4,8 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface VentaCreditoRepository extends JpaRepository<VentaCredito, Long> {
-    List<VentaCredito> findAllByTiendaIdOrderByFechaCompraDescIdDesc(Long tiendaId);
+public interface VentaCreditoRepository extends JpaRepository<VentaCreditoEntity, Long> {
+    List<VentaCreditoEntity> findAllByTiendaIdOrderByFechaCompraDescIdDesc(Long tiendaId);
 
-    List<VentaCredito> findAllByClienteIdOrderByCicloAsc(Long clienteId);
+    List<VentaCreditoEntity> findAllByClienteIdOrderByCicloAsc(Long clienteId);
 }

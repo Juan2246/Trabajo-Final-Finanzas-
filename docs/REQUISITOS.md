@@ -13,8 +13,8 @@ Referencia: enunciado de SI642 Finanzas e Ingeniería Económica proporcionado p
 | RF05 | Catálogo genérico de productos y servicios | Nombre, descripción, proveedor, marca, unidad, imagen HTTPS, precios contado/crédito, moneda y permiso de cuotas. Una prestación se registra como servicio con su unidad correspondiente. Alta, edición y baja lógica. |
 | RF06 | Clientes y condiciones pactadas | Identificación, contacto, moneda, límite, tasas nominales/efectivas, frecuencia, plazo máximo, corte con hora, día de pago y usuario de consulta. |
 | RF07 | Política y consentimiento | Política visible en el acceso y alta; consentimiento obligatorio, fecha y versión guardadas. La baja no borra saldos ni recibos. |
-| RF08 | Método francés vencido, meses de 30 días | `MotorFinanciero.calcularPlanPagos` en `finanzas/MotorFinanciero.java`, BigDecimal y última cuota conciliada. Caso numérico A en `DATOS_DE_PRUEBA.md`. |
-| RF09 | Gracia total capitalizada antes de las cuotas | Compra del 15/09, corte 20, pago 26: 11 días de gracia; primera cuota el 26/10. Prueba `MotorFinancieroTest` y su matriz de 180 planes. |
+| RF08 | Método francés vencido, meses de 30 días | `MotorFinancieroService.calcularPlanPagos` en `finanzas/MotorFinancieroService.java`, BigDecimal y última cuota conciliada. Caso numérico A en `DATOS_DE_PRUEBA.md`. |
+| RF09 | Gracia total capitalizada antes de las cuotas | Compra del 15/09, corte 20, pago 26: 11 días de gracia; primera cuota el 26/10. Prueba `MotorFinancieroServiceTest` y su matriz de 180 planes. |
 | RF10 | Interés por compra hasta el pago al cierre | Factor correspondiente a los días comerciales de cada compra y su tasa guardada. Caso B. |
 | RF11 | Compra posterior al corte al ciclo siguiente | Comparación de fecha y hora; pruebas del instante exacto y un segundo después. |
 | RF12 | Control de crédito y rechazo de pagos parciales | Verificación del capital pendiente dentro de transacción; pago exacto de la liquidación completa, sin doble cancelación. Pruebas de API y concurrencia. |

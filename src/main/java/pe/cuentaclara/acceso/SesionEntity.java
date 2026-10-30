@@ -5,14 +5,14 @@ import jakarta.persistence.*;
 /** Sesión con vencimiento y token CSRF. */
 @Entity
 @Table(name = "sessions")
-public class Sesion {
+public class SesionEntity {
     @Id
     @Column(name = "token")
     private String token;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private Usuario usuario;
+    private UsuarioEntity usuario;
 
     @Column(name = "csrf")
     private String csrf;
@@ -28,11 +28,11 @@ public class Sesion {
         this.token = token;
     }
 
-    public Usuario getUsuario() {
+    public UsuarioEntity getUsuario() {
         return usuario;
     }
 
-    public void setUsuario(Usuario usuario) {
+    public void setUsuario(UsuarioEntity usuario) {
         this.usuario = usuario;
     }
 

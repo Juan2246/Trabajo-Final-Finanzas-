@@ -91,9 +91,11 @@ tests/              Recorridos de navegador y contenedor
 docs/               Diseño, fórmulas, API y manual
 ```
 
-Ejemplo: en `clientes/`, **Cliente** es la entidad, **ClienteRepository** consulta la base, **ClienteService** aplica las reglas y **ClienteController** recibe HTTP. Los records **ClienteEntradaDTO** y **ClienteSalidaDTO** llevan datos entre la API y la interfaz. Las entidades no se devuelven directamente al navegador.
+Ejemplo: en `clientes/`, **ClienteEntity** es la entidad, **ClienteRepository** consulta la base, **ClienteService** aplica las reglas y **ClienteController** recibe HTTP. Los records **ClienteEntradaDTO** y **ClienteSalidaDTO** llevan datos entre la API y la interfaz. Las entidades no se devuelven directamente al navegador.
 
-Los nombres del negocio y sus métodos están en español: `limiteCredito`, `crear`, `actualizar`, `simular` y `calcularPlanPagos`. Conservamos los términos técnicos `Controller`, `Service`, `Repository` y `DTO`, además de las convenciones de Java y Spring (`get`, `set`, `findBy`, etc.).
+Los nombres del negocio y sus métodos están en español: `limiteCredito`, `crear`, `actualizar`, `simular` y `calcularPlanPagos`. El sufijo indica el tipo de clase: `Entity`, `Service`, `Repository`, `Controller` o `DTO`. Conservamos también las convenciones de Java y Spring (`get`, `set`, `findBy`, etc.).
+
+Por ejemplo, el módulo de pagos reúne `PagoEntity`, `DetallePagoEntity`, `PagoRepository`, `DetallePagoRepository`, `PagoService`, `PagoController` y sus DTOs. Así se reconoce la función de cada archivo dentro del mismo módulo.
 
 Para empezar a editar, revisa la [arquitectura y recorrido de una venta](docs/ARQUITECTURA.md). El frontend sigue siendo una aplicación web adaptable en HTML/CSS/JavaScript; se sirve desde Spring Boot y no requiere compilación propia.
 

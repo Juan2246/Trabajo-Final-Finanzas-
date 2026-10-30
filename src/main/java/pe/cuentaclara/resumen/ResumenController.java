@@ -3,7 +3,7 @@ package pe.cuentaclara.resumen;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import pe.cuentaclara.acceso.UsuarioActual;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
 
 @RestController
 public class ResumenController {
@@ -15,7 +15,7 @@ public class ResumenController {
 
     @GetMapping("/api/data")
     public ResumenSalidaDTO obtenerResumen(
-            @AuthenticationPrincipal UsuarioActual usuario,
+            @AuthenticationPrincipal UsuarioActualPrincipal usuario,
             @RequestParam(name = "store_id", required = false) Long tiendaId) {
         return dashboard.obtenerResumen(usuario, tiendaId);
     }

@@ -6,7 +6,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import pe.cuentaclara.acceso.UsuarioActual;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
 
 @RestController
 @RequestMapping("/api/sales")
@@ -20,7 +20,7 @@ public class CreditoController {
 
     @PostMapping(value = "/preview", consumes = "application/json")
     public SimulacionVentaDTO simular(
-            @AuthenticationPrincipal UsuarioActual usuario,
+            @AuthenticationPrincipal UsuarioActualPrincipal usuario,
             @RequestParam(name = "store_id", required = false) Long tiendaId,
             @Valid @RequestBody VentaEntradaDTO solicitud) {
         return creditos.simular(usuario, tiendaId, solicitud);
@@ -28,7 +28,7 @@ public class CreditoController {
 
     @PostMapping(consumes = "application/json")
     public SimulacionVentaDTO crear(
-            @AuthenticationPrincipal UsuarioActual usuario,
+            @AuthenticationPrincipal UsuarioActualPrincipal usuario,
             @RequestParam(name = "store_id", required = false) Long tiendaId,
             @Valid @RequestBody VentaEntradaDTO solicitud) {
         return creditos.crear(usuario, tiendaId, solicitud);

@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import pe.cuentaclara.acceso.*;
 import pe.cuentaclara.catalogo.*;
 import pe.cuentaclara.clientes.*;
-import pe.cuentaclara.comun.RelojNegocio;
+import pe.cuentaclara.comun.RelojNegocioComponent;
 import pe.cuentaclara.config.AppProperties;
 import pe.cuentaclara.creditos.*;
 import pe.cuentaclara.tiendas.*;
@@ -19,8 +19,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @Component
-public class InicializadorDatos implements ApplicationRunner {
-    private static final Logger log = LoggerFactory.getLogger(InicializadorDatos.class);
+public class InicializadorDatosRunner implements ApplicationRunner {
+    private static final Logger log = LoggerFactory.getLogger(InicializadorDatosRunner.class);
     private final AppProperties properties;
     private final UsuarioRepository usuarioRepository;
     private final UsuarioService usuarios;
@@ -28,9 +28,9 @@ public class InicializadorDatos implements ApplicationRunner {
     private final ClienteService clientes;
     private final ProductoService productos;
     private final CreditoService creditos;
-    private final RelojNegocio reloj;
+    private final RelojNegocioComponent reloj;
 
-    public InicializadorDatos(
+    public InicializadorDatosRunner(
             AppProperties properties,
             UsuarioRepository usuarioRepository,
             UsuarioService usuarios,
@@ -38,7 +38,7 @@ public class InicializadorDatos implements ApplicationRunner {
             ClienteService clientes,
             ProductoService productos,
             CreditoService creditos,
-            RelojNegocio reloj) {
+            RelojNegocioComponent reloj) {
         this.properties = properties;
         this.usuarioRepository = usuarioRepository;
         this.usuarios = usuarios;
@@ -53,10 +53,10 @@ public class InicializadorDatos implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         if (!properties.initialize() || usuarioRepository.count() > 0) return;
-        String generated = "Demo" + TokensAleatorios.token(14) + "7";
+        String generated = "Demo" + TokensAleatoriosUtil.token(14) + "7";
         String adminPassword =
                 properties.adminPassword().isBlank() ? generated : properties.adminPassword();
-        Usuario admin =
+        UsuarioEntity admin =
                 usuarios.crear(
                         properties.adminUser(),
                         "Administrador",
@@ -72,8 +72,8 @@ public class InicializadorDatos implements ApplicationRunner {
         if (!properties.demo()) return;
         String password =
                 properties.demoPassword().isBlank() ? generated : properties.demoPassword();
-        UsuarioActual usuarioActual =
-                new UsuarioActual(
+        UsuarioActualPrincipal usuarioActual =
+                new UsuarioActualPrincipal(
                         admin.getId(),
                         admin.getUsername(),
                         admin.getNombre(),

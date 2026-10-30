@@ -6,10 +6,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-public interface EstadoCerradoRepository extends JpaRepository<EstadoCerrado, Long> {
+public interface EstadoCerradoRepository extends JpaRepository<EstadoCerradoEntity, Long> {
     boolean existsByClienteIdAndCiclo(Long clienteId, LocalDate ciclo);
 
-    Optional<EstadoCerrado> findByClienteIdAndCiclo(Long clienteId, LocalDate ciclo);
+    Optional<EstadoCerradoEntity> findByClienteIdAndCiclo(Long clienteId, LocalDate ciclo);
 
-    List<EstadoCerrado> findAllByClienteIdOrderByCicloDesc(Long clienteId);
+    List<EstadoCerradoEntity> findAllByClienteIdOrderByCicloDesc(Long clienteId);
 }

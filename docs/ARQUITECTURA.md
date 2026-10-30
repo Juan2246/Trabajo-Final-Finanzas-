@@ -9,14 +9,14 @@ flowchart LR
     B[Navegador] --> S[Spring Security: sesión y CSRF]
     S --> C[Controller + DTO de entrada validado]
     C --> V[Service: permisos y transacción]
-    V --> F[MotorFinanciero: BigDecimal]
+    V --> F[MotorFinancieroService: BigDecimal]
     V --> R[Repository: Spring Data JPA]
     R --> E[Entidades y convertidores]
     E --> D[(SQLite)]
     V --> A[Auditoría dentro de la transacción]
 ```
 
-Una venta entra por `CreditoController`. `VentaEntradaDTO` valida su formato. `CreditoService` identifica la tienda desde la sesión, busca el cliente y los productos, calcula el importe con precios guardados y consulta `MotorFinanciero`. Después comprueba el crédito disponible y, si corresponde, que la simulación aceptada siga vigente. La venta, los productos vendidos, las cuotas y la auditoría se guardan dentro de **una misma transacción**. Un error revierte todo.
+Una venta entra por `CreditoController`. `VentaEntradaDTO` valida su formato. `CreditoService` identifica la tienda desde la sesión, busca el cliente y los productos, calcula el importe con precios guardados y consulta `MotorFinancieroService`. Después comprueba el crédito disponible y, si corresponde, que la simulación aceptada siga vigente. La venta, los productos vendidos, las cuotas y la auditoría se guardan dentro de **una misma transacción**. Un error revierte todo.
 
 ## Cómo encontrar cada parte
 
@@ -24,21 +24,21 @@ Los paquetes se agrupan por función. Cada módulo contiene su entidad, reposito
 
 | Módulo | Entidades principales | Responsabilidad |
 | --- | --- | --- |
-| `acceso` | Usuario, Sesion, VerificacionAcceso, IntentoAcceso | Acceso, contraseñas y sesiones |
-| `tiendas` | Tienda | Tiendas y alcance de permisos |
-| `clientes` | Cliente | Datos personales y acuerdo de crédito |
-| `catalogo` | Producto | Catálogo de productos y servicios |
-| `creditos` | VentaCredito, DetalleVenta, Cuota | Compras y cronogramas |
-| `pagos` | Pago, DetallePago | Liquidación completa y mora cobrada |
-| `estados` | EstadoCerrado | Consultas y fotografías del cierre |
-| `auditoria` | Movimiento | Usuario, acción y fecha de cada movimiento |
+| `acceso` | UsuarioEntity, SesionEntity, VerificacionAccesoEntity, IntentoAccesoEntity | Acceso, contraseñas y sesiones |
+| `tiendas` | TiendaEntity | Tiendas y alcance de permisos |
+| `clientes` | ClienteEntity | Datos personales y acuerdo de crédito |
+| `catalogo` | ProductoEntity | Catálogo de productos y servicios |
+| `creditos` | VentaCreditoEntity, DetalleVentaEntity, CuotaEntity | Compras y cronogramas |
+| `pagos` | PagoEntity, DetallePagoEntity | Liquidación completa y mora cobrada |
+| `estados` | EstadoCerradoEntity | Consultas y fotografías del cierre |
+| `auditoria` | MovimientoEntity | Usuario, acción y fecha de cada movimiento |
 | `finanzas` | Sin persistencia | Tasas, calendario comercial, gracia y cuotas |
 | `resumen` | Sin entidades propias | Datos del resumen según perfil |
 | `config` / `comun` | Sin entidades propias | Configuración, reloj, errores y convertidores |
 
 Ejemplo concreto en `src/main/java/pe/cuentaclara/clientes/`:
 
-- `Cliente.java`: entidad JPA que representa la tabla `customers`.
+- `ClienteEntity.java`: entidad JPA que representa la tabla `customers`.
 - `ClienteRepository.java`: acceso mediante Spring Data JPA.
 - `ClienteEntradaDTO.java`: campos y validaciones de entrada.
 - `ClienteSalidaDTO.java`: datos que puede recibir la interfaz.
@@ -49,15 +49,31 @@ Las dependencias se reciben por constructor y se guardan en campos `final`. No s
 
 ### Convención de nombres
 
-Usamos español para los conceptos del negocio: `Cliente`, `VentaCredito`, `CondicionesCredito`, `limiteCredito` y `fechaVencimiento`. Los métodos expresan la operación: `ClienteService.crear`, `ClienteService.actualizar`, `CreditoService.simular`, `MotorFinanciero.calcularPlanPagos` y `EstadoCuentaService.cerrarPendientes`.
+Usamos español para los conceptos del negocio: `ClienteEntity`, `VentaCreditoEntity`, `CondicionesCreditoDTO`, `limiteCredito` y `fechaVencimiento`. Los métodos expresan la operación: `ClienteService.crear`, `ClienteService.actualizar`, `CreditoService.simular`, `MotorFinancieroService.calcularPlanPagos` y `EstadoCuentaService.cerrarPendientes`.
 
-Conservamos `Controller`, `Service`, `Repository`, `DTO`, los getters/setters y las palabras que interpreta Spring Data. Por ejemplo, `findAllByTiendaIdOrderByNombreAsc` busca clientes de una tienda ordenados por nombre. Cada service es una clase concreta con sus reglas; no necesita una interfaz y una implementación separadas para este alcance.
+Cada clase lleva el sufijo que corresponde a su responsabilidad:
+
+| Sufijo | Ejemplo | Función |
+| --- | --- | --- |
+| `Entity` | `ClienteEntity`, `DetallePagoEntity` | Entidad JPA con `@Entity`, vinculada a una tabla. |
+| `Service` | `ClienteService`, `MotorFinancieroService` | Reglas y cálculos del negocio con `@Service`. |
+| `Repository` | `ClienteRepository` | Consultas y persistencia de las entidades. |
+| `Controller` | `ClienteController` | Rutas HTTP, autorización y validación de entrada. |
+| `DTO` | `ClienteEntradaDTO`, `PlanPagosDTO` | Datos de entrada o salida; no representan tablas. |
+| `Component` | `RelojNegocioComponent`, `SoporteJsonComponent` | Auxiliares técnicos administrados por Spring. |
+| `Principal` | `UsuarioActualPrincipal` | Identidad del usuario autenticado; implementa `Principal`. |
+| `Runner` | `InicializadorDatosRunner` | Inicialización al arrancar la aplicación. |
+| `Util` | `TokensAleatoriosUtil` | Funciones auxiliares estáticas. |
+
+Los filtros, convertidores, configuración, tareas y excepciones conservan sus sufijos `Filter`, `Converter`, `Config`, `Job` y `Exception`. Los records internos de cálculo, como `CalculoVenta` y `FechasCiclo`, son valores auxiliares, sin persistencia.
+
+Conservamos los getters/setters y las palabras que interpreta Spring Data. Por ejemplo, `findAllByTiendaIdOrderByNombreAsc` busca clientes de una tienda ordenados por nombre. Cada service es una clase concreta con sus reglas; no necesita una interfaz y una implementación separadas para este alcance.
 
 Los nombres públicos de las rutas y los campos JSON siguen el [contrato de API](API.md). `@JsonProperty` conecta esos campos con los atributos Java en español; `@Column` y `@JoinColumn` hacen lo mismo con las tablas existentes. Esto permite leer las compras, condiciones y cierres ya guardados sin migrar los datos.
 
 ## Dinero, fechas y persistencia
 
-`MotorFinanciero` usa `BigDecimal`, precisión de 36 dígitos para factores y `HALF_UP` a dos decimales para importes. `big-math` calcula potencias decimales. Ningún cálculo definitivo pasa por `double`. Las fórmulas están en [FINANZAS.md](FINANZAS.md).
+`MotorFinancieroService` usa `BigDecimal`, precisión de 36 dígitos para factores y `HALF_UP` a dos decimales para importes. `big-math` calcula potencias decimales. Ningún cálculo definitivo pasa por `double`. Las fórmulas están en [FINANZAS.md](FINANZAS.md).
 
 Los convertidores de `comun` guardan importes decimales como texto e instantes locales en ISO. Esto conserva las 14 tablas y los valores de la versión anterior. `ddl-auto=none` evita que Hibernate cambie el esquema automáticamente. El DDL idempotente vive en `src/main/resources/db/schema.sql`.
 

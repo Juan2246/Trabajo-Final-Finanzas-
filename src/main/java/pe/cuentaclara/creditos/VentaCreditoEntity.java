@@ -2,8 +2,8 @@ package pe.cuentaclara.creditos;
 
 import jakarta.persistence.*;
 
-import pe.cuentaclara.clientes.Cliente;
-import pe.cuentaclara.tiendas.Tienda;
+import pe.cuentaclara.clientes.ClienteEntity;
+import pe.cuentaclara.tiendas.TiendaEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 /** Compra y copia del acuerdo financiero original. */
 @Entity
 @Table(name = "sales")
-public class VentaCredito {
+public class VentaCreditoEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -20,11 +20,11 @@ public class VentaCredito {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id")
-    private Tienda tienda;
+    private TiendaEntity tienda;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
-    private Cliente cliente;
+    private ClienteEntity cliente;
 
     @Column(name = "purchased_at")
     private LocalDateTime fechaCompra;
@@ -67,19 +67,19 @@ public class VentaCredito {
         this.id = id;
     }
 
-    public Tienda getTienda() {
+    public TiendaEntity getTienda() {
         return tienda;
     }
 
-    public void setTienda(Tienda tienda) {
+    public void setTienda(TiendaEntity tienda) {
         this.tienda = tienda;
     }
 
-    public Cliente getCliente() {
+    public ClienteEntity getCliente() {
         return cliente;
     }
 
-    public void setCliente(Cliente cliente) {
+    public void setCliente(ClienteEntity cliente) {
         this.cliente = cliente;
     }
 

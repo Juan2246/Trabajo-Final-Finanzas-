@@ -8,7 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import pe.cuentaclara.acceso.UsuarioActual;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
 
 import java.util.Map;
 
@@ -24,14 +24,14 @@ public class TiendaController {
 
     @PostMapping(consumes = "application/json")
     public Map<String, Long> crear(
-            @AuthenticationPrincipal UsuarioActual usuario,
+            @AuthenticationPrincipal UsuarioActualPrincipal usuario,
             @Valid @RequestBody TiendaEntradaDTO solicitud) {
         return Map.of("id", tiendas.crear(usuario, solicitud));
     }
 
     @PatchMapping(value = "/{id}", consumes = "application/json")
     public Map<String, Boolean> actualizar(
-            @AuthenticationPrincipal UsuarioActual usuario,
+            @AuthenticationPrincipal UsuarioActualPrincipal usuario,
             @PathVariable Long id,
             @RequestBody JsonNode patch) {
         tiendas.actualizar(usuario, id, patch);

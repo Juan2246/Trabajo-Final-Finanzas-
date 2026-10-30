@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 /** Comprobación de acceso de un solo uso. */
 @Entity
 @Table(name = "challenges")
-public class VerificacionAcceso {
+public class VerificacionAccesoEntity {
     @Id
     @Column(name = "id")
     private String id;

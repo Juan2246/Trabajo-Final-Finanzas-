@@ -1,6 +1,6 @@
 # Cómo salen las cuotas
 
-El motor está en [MotorFinanciero.java](../src/main/java/pe/cuentaclara/finanzas/MotorFinanciero.java). Los cálculos usan `BigDecimal`: el monto no pasa por números binarios de punto flotante. Se redondea a dos decimales con `RoundingMode.HALF_UP`.
+El motor está en [MotorFinancieroService.java](../src/main/java/pe/cuentaclara/finanzas/MotorFinancieroService.java). Los cálculos usan `BigDecimal`: el monto no pasa por números binarios de punto flotante. Se redondea a dos decimales con `RoundingMode.HALF_UP`.
 
 Las reglas siguen el enunciado del curso SI642 compartido para este proyecto. Son decisiones del modelo académico, no una validación de condiciones legales de crédito.
 

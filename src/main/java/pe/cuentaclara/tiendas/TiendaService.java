@@ -6,11 +6,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import pe.cuentaclara.acceso.SesionRepository;
-import pe.cuentaclara.acceso.UsuarioActual;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
 import pe.cuentaclara.acceso.UsuarioService;
 import pe.cuentaclara.auditoria.AuditoriaService;
 import pe.cuentaclara.comun.ReglaNegocioException;
-import pe.cuentaclara.comun.SoporteJson;
+import pe.cuentaclara.comun.SoporteJsonComponent;
 
 @Service
 public class TiendaService {
@@ -18,14 +18,14 @@ public class TiendaService {
     private final UsuarioService usuarios;
     private final SesionRepository sesiones;
     private final AuditoriaService auditoria;
-    private final SoporteJson json;
+    private final SoporteJsonComponent json;
 
     public TiendaService(
             TiendaRepository tiendas,
             UsuarioService usuarios,
             SesionRepository sesiones,
             AuditoriaService auditoria,
-            SoporteJson json) {
+            SoporteJsonComponent json) {
         this.tiendas = tiendas;
         this.usuarios = usuarios;
         this.sesiones = sesiones;
@@ -34,8 +34,8 @@ public class TiendaService {
     }
 
     @Transactional
-    public Long crear(UsuarioActual usuarioActual, TiendaEntradaDTO solicitud) {
-        Tienda tienda = new Tienda();
+    public Long crear(UsuarioActualPrincipal usuarioActual, TiendaEntradaDTO solicitud) {
+        TiendaEntity tienda = new TiendaEntity();
         aplicarDatos(tienda, solicitud);
         tiendas.saveAndFlush(tienda);
         usuarios.crear(
@@ -55,8 +55,8 @@ public class TiendaService {
     }
 
     @Transactional
-    public void actualizar(UsuarioActual usuarioActual, Long id, JsonNode patch) {
-        Tienda tienda =
+    public void actualizar(UsuarioActualPrincipal usuarioActual, Long id, JsonNode patch) {
+        TiendaEntity tienda =
                 tiendas.findById(id)
                         .orElseThrow(() -> new ReglaNegocioException("Tienda no encontrada.", 404));
         TiendaEntradaDTO solicitud =
@@ -66,7 +66,7 @@ public class TiendaService {
         auditoria.registrar(usuarioActual.id(), id, "Tienda actualizada", id, "");
     }
 
-    private void aplicarDatos(Tienda tienda, TiendaEntradaDTO solicitud) {
+    private void aplicarDatos(TiendaEntity tienda, TiendaEntradaDTO solicitud) {
         tienda.setNombre(solicitud.nombre().strip());
         tienda.setRubro(solicitud.rubro().strip());
         tienda.setDireccion(solicitud.direccion() == null ? "" : solicitud.direccion().strip());

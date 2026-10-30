@@ -6,7 +6,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import pe.cuentaclara.acceso.UsuarioActual;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
 
 import java.time.LocalDate;
 
@@ -21,7 +21,7 @@ public class EstadoCuentaController {
 
     @GetMapping
     public ObjectNode consultar(
-            @AuthenticationPrincipal UsuarioActual usuario,
+            @AuthenticationPrincipal UsuarioActualPrincipal usuario,
             @RequestParam(name = "store_id", required = false) Long tiendaId,
             @RequestParam(name = "customer_id", required = false) Long clienteId,
             @RequestParam(name = "date", required = false)

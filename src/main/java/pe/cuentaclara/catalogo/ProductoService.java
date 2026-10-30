@@ -5,10 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import pe.cuentaclara.acceso.UsuarioActual;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
 import pe.cuentaclara.auditoria.AuditoriaService;
 import pe.cuentaclara.comun.ReglaNegocioException;
-import pe.cuentaclara.comun.SoporteJson;
+import pe.cuentaclara.comun.SoporteJsonComponent;
 import pe.cuentaclara.tiendas.AccesoTiendaService;
 
 import java.net.URI;
@@ -18,13 +18,13 @@ public class ProductoService {
     private final ProductoRepository productos;
     private final AccesoTiendaService acceso;
     private final AuditoriaService auditoria;
-    private final SoporteJson json;
+    private final SoporteJsonComponent json;
 
     public ProductoService(
             ProductoRepository productos,
             AccesoTiendaService acceso,
             AuditoriaService auditoria,
-            SoporteJson json) {
+            SoporteJsonComponent json) {
         this.productos = productos;
         this.acceso = acceso;
         this.auditoria = auditoria;
@@ -33,9 +33,11 @@ public class ProductoService {
 
     @Transactional
     public Long crear(
-            UsuarioActual usuarioActual, Long tiendaSeleccionada, ProductoEntradaDTO solicitud) {
+            UsuarioActualPrincipal usuarioActual,
+            Long tiendaSeleccionada,
+            ProductoEntradaDTO solicitud) {
         var tienda = acceso.resolverTienda(usuarioActual, tiendaSeleccionada, true);
-        Producto producto = new Producto();
+        ProductoEntity producto = new ProductoEntity();
         producto.setTienda(tienda);
         aplicarDatos(producto, solicitud);
         productos.saveAndFlush(producto);
@@ -46,17 +48,20 @@ public class ProductoService {
 
     @Transactional
     public void actualizar(
-            UsuarioActual usuarioActual, Long tiendaSeleccionada, Long id, JsonNode patch) {
+            UsuarioActualPrincipal usuarioActual,
+            Long tiendaSeleccionada,
+            Long id,
+            JsonNode patch) {
         var tienda = acceso.resolverTienda(usuarioActual, tiendaSeleccionada, true);
-        Producto producto = buscar(id, tienda.getId());
+        ProductoEntity producto = buscar(id, tienda.getId());
         aplicarDatos(
                 producto,
                 json.combinar(ProductoSalidaDTO.desde(producto), patch, ProductoEntradaDTO.class));
         auditoria.registrar(usuarioActual.id(), tienda.getId(), "Producto actualizado", id, "");
     }
 
-    public Producto buscar(Long id, Long tiendaId) {
-        Producto producto =
+    public ProductoEntity buscar(Long id, Long tiendaId) {
+        ProductoEntity producto =
                 productos
                         .findById(id)
                         .orElseThrow(
@@ -68,7 +73,7 @@ public class ProductoService {
         return producto;
     }
 
-    private void aplicarDatos(Producto producto, ProductoEntradaDTO solicitud) {
+    private void aplicarDatos(ProductoEntity producto, ProductoEntradaDTO solicitud) {
         String imagen = limpiar(solicitud.imagen());
         if (!imagen.isEmpty()) {
             URI uri = URI.create(imagen);

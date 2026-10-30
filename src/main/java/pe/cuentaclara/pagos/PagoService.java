@@ -3,14 +3,14 @@ package pe.cuentaclara.pagos;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import pe.cuentaclara.acceso.UsuarioActual;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
 import pe.cuentaclara.auditoria.AuditoriaService;
 import pe.cuentaclara.comun.ReglaNegocioException;
-import pe.cuentaclara.comun.RelojNegocio;
+import pe.cuentaclara.comun.RelojNegocioComponent;
 import pe.cuentaclara.creditos.ConsultaCreditoService;
 import pe.cuentaclara.creditos.CuotaRepository;
 import pe.cuentaclara.creditos.CuotaSalidaDTO;
-import pe.cuentaclara.finanzas.MotorFinanciero;
+import pe.cuentaclara.finanzas.MotorFinancieroService;
 import pe.cuentaclara.tiendas.AccesoTiendaService;
 
 import java.math.BigDecimal;
@@ -22,7 +22,7 @@ public class PagoService {
     private final CuotaRepository cuotas;
     private final ConsultaCreditoService consultas;
     private final AccesoTiendaService acceso;
-    private final RelojNegocio reloj;
+    private final RelojNegocioComponent reloj;
     private final AuditoriaService auditoria;
 
     public PagoService(
@@ -31,7 +31,7 @@ public class PagoService {
             CuotaRepository cuotas,
             ConsultaCreditoService consultas,
             AccesoTiendaService acceso,
-            RelojNegocio reloj,
+            RelojNegocioComponent reloj,
             AuditoriaService auditoria) {
         this.pagos = pagos;
         this.lineas = lineas;
@@ -44,7 +44,7 @@ public class PagoService {
 
     @Transactional(readOnly = true)
     public LiquidacionPagoDTO simular(
-            UsuarioActual usuarioActual, Long tiendaSeleccionada, Long clienteId) {
+            UsuarioActualPrincipal usuarioActual, Long tiendaSeleccionada, Long clienteId) {
         var tienda = acceso.resolverTienda(usuarioActual, tiendaSeleccionada, true);
         return calcular(tienda.getId(), clienteId);
     }
@@ -71,12 +71,12 @@ public class PagoService {
                             .toList();
         }
         var base =
-                MotorFinanciero.redondearImporte(
+                MotorFinancieroService.redondearImporte(
                         cuotas.stream()
                                 .map(CuotaSalidaDTO::importe)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add));
         var late =
-                MotorFinanciero.redondearImporte(
+                MotorFinancieroService.redondearImporte(
                         cuotas.stream()
                                 .map(CuotaSalidaDTO::importeMora)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add));
@@ -85,13 +85,15 @@ public class PagoService {
                 cuotas,
                 base,
                 late,
-                MotorFinanciero.redondearImporte(base.add(late)),
+                MotorFinancieroService.redondearImporte(base.add(late)),
                 cliente.getMoneda());
     }
 
     @Transactional
     public LiquidacionPagoDTO crear(
-            UsuarioActual usuarioActual, Long tiendaSeleccionada, PagoEntradaDTO solicitud) {
+            UsuarioActualPrincipal usuarioActual,
+            Long tiendaSeleccionada,
+            PagoEntradaDTO solicitud) {
         var tienda = acceso.resolverTienda(usuarioActual, tiendaSeleccionada, true);
         var cliente = acceso.buscarCliente(solicitud.clienteId(), tienda.getId());
         var quote = calcular(tienda.getId(), cliente.getId());
@@ -104,7 +106,7 @@ public class PagoService {
                             + " "
                             + quote.moneda()
                             + ". Actualiza la liquidación.");
-        Pago pago = new Pago();
+        PagoEntity pago = new PagoEntity();
         pago.setTienda(tienda);
         pago.setCliente(cliente);
         pago.setFechaPago(reloj.ahora());
@@ -117,7 +119,7 @@ public class PagoService {
             var obligation = cuotas.findById(cuota.id()).orElseThrow();
             if (obligation.getPago() != null)
                 throw new ReglaNegocioException("La cuota ya fue cancelada.", 409);
-            DetallePago linea = new DetallePago();
+            DetallePagoEntity linea = new DetallePagoEntity();
             linea.setPago(pago);
             linea.setCuota(obligation);
             linea.setDiasMora(cuota.diasMora());

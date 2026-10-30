@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 /** Tienda y rubro del comercio. */
 @Entity
 @Table(name = "stores")
-public class Tienda {
+public class TiendaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")

@@ -2,8 +2,8 @@ package pe.cuentaclara.creditos;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import pe.cuentaclara.finanzas.CuotaCalculada;
-import pe.cuentaclara.finanzas.PlanPagos;
+import pe.cuentaclara.finanzas.CuotaCalculadaDTO;
+import pe.cuentaclara.finanzas.PlanPagosDTO;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,7 +16,7 @@ public record SimulacionVentaDTO(
         @JsonProperty("grace_days") int diasGracia,
         @JsonProperty("grace_interest") BigDecimal interesGracia,
         @JsonProperty("financed") BigDecimal capitalFinanciado,
-        @JsonProperty("dues") List<CuotaCalculada> cuotas,
+        @JsonProperty("dues") List<CuotaCalculadaDTO> cuotas,
         @JsonProperty("amount") BigDecimal importe,
         @JsonProperty("currency") String moneda,
         @JsonProperty("available") BigDecimal disponible,
@@ -27,7 +27,7 @@ public record SimulacionVentaDTO(
         @JsonProperty("months") int meses) {
     public static SimulacionVentaDTO desde(
             Long id,
-            PlanPagos planPagos,
+            PlanPagosDTO planPagos,
             BigDecimal importe,
             String moneda,
             BigDecimal disponible,

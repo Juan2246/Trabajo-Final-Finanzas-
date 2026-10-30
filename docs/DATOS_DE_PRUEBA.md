@@ -64,4 +64,4 @@ El reporte debe mostrar por separado base vencida **510.57**, **9 días** y tasa
 | Dos compras simultáneas que juntas superan el límite | Solo la operación que cabe se confirma |
 | Dos cobros de las mismas cuotas | Un solo recibo válido |
 
-Pruebas relacionadas: `MotorFinancieroTest`, `ContrasenaServiceTest` y `ApiIntegrationTest`. [PRUEBAS.md](PRUEBAS.md) explica la ejecución y las evidencias de navegador.
+Pruebas relacionadas: `MotorFinancieroServiceTest`, `ContrasenaServiceTest` y `ApiIntegrationTest`. [PRUEBAS.md](PRUEBAS.md) explica la ejecución y las evidencias de navegador.

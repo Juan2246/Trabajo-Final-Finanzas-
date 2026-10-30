@@ -5,7 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import pe.cuentaclara.auditoria.AuditoriaService;
 import pe.cuentaclara.comun.ReglaNegocioException;
-import pe.cuentaclara.comun.RelojNegocio;
+import pe.cuentaclara.comun.RelojNegocioComponent;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -19,7 +19,7 @@ public class AccesoService {
     private final VerificacionAccesoRepository verificaciones;
     private final IntentoAccesoRepository intentos;
     private final ContrasenaService contrasenas;
-    private final RelojNegocio reloj;
+    private final RelojNegocioComponent reloj;
     private final AuditoriaService auditoria;
 
     public AccesoService(
@@ -28,7 +28,7 @@ public class AccesoService {
             VerificacionAccesoRepository verificaciones,
             IntentoAccesoRepository intentos,
             ContrasenaService contrasenas,
-            RelojNegocio reloj,
+            RelojNegocioComponent reloj,
             AuditoriaService auditoria) {
         this.usuarios = usuarios;
         this.sesiones = sesiones;
@@ -42,9 +42,9 @@ public class AccesoService {
     @Transactional
     public Map<String, String> verificacion() {
         verificaciones.deleteByVenceEnLessThan(reloj.segundosEpoch());
-        int a = TokensAleatorios.digito(), b = TokensAleatorios.digito();
-        VerificacionAcceso verificacion = new VerificacionAcceso();
-        verificacion.setId(TokensAleatorios.token(24));
+        int a = TokensAleatoriosUtil.digito(), b = TokensAleatoriosUtil.digito();
+        VerificacionAccesoEntity verificacion = new VerificacionAccesoEntity();
+        verificacion.setId(TokensAleatoriosUtil.token(24));
         verificacion.setRespuesta(Integer.toString(a + b));
         verificacion.setVenceEn(reloj.segundosEpoch() + 300);
         verificaciones.save(verificacion);
@@ -52,7 +52,7 @@ public class AccesoService {
     }
 
     @Transactional(noRollbackFor = AccesoFallidoException.class)
-    public UsuarioActual login(AccesoEntradaDTO solicitud, String ip) {
+    public UsuarioActualPrincipal login(AccesoEntradaDTO solicitud, String ip) {
         long now = reloj.segundosEpoch();
         String username = solicitud.username().strip();
         List<String> keys =
@@ -61,10 +61,10 @@ public class AccesoService {
             if (intentos.findById(key).map(row -> row.getBloqueadoHasta() > now).orElse(false))
                 throw new ReglaNegocioException("Demasiados intentos. Espera 15 minutos.", 429);
         }
-        VerificacionAcceso verificacion =
+        VerificacionAccesoEntity verificacion =
                 verificaciones.findById(solicitud.verificacionId()).orElse(null);
         if (verificacion != null) verificaciones.delete(verificacion);
-        Usuario usuario = usuarios.findByUsernameIgnoreCase(username).orElse(null);
+        UsuarioEntity usuario = usuarios.findByUsernameIgnoreCase(username).orElse(null);
         boolean contrasenaValida =
                 contrasenas.verificar(
                         solicitud.password(), usuario == null ? "0:0" : usuario.getPassword());
@@ -81,7 +81,8 @@ public class AccesoService {
                                 || Boolean.TRUE.equals(usuario.getTienda().getActivo()));
         if (!contrasenaValida || !verificacionValida || !cuentaValida) {
             for (String key : keys) {
-                IntentoAcceso intento = intentos.findById(key).orElseGet(IntentoAcceso::new);
+                IntentoAccesoEntity intento =
+                        intentos.findById(key).orElseGet(IntentoAccesoEntity::new);
                 int fallos =
                         intento.getActualizadoEn() != null && intento.getActualizadoEn() > now - 900
                                 ? intento.getFallos() + 1
@@ -99,15 +100,15 @@ public class AccesoService {
         if (contrasenas.necesitaActualizarHash(usuario.getPassword()))
             usuario.setPassword(contrasenas.generarHash(solicitud.password()));
         sesiones.deleteByVenceEnLessThan(now);
-        Sesion sesion = new Sesion();
-        sesion.setToken(TokensAleatorios.token(48));
-        sesion.setCsrf(TokensAleatorios.token(32));
+        SesionEntity sesion = new SesionEntity();
+        sesion.setToken(TokensAleatoriosUtil.token(48));
+        sesion.setCsrf(TokensAleatoriosUtil.token(32));
         sesion.setUsuario(usuario);
         sesion.setVenceEn(now + 28800);
         sesiones.save(sesion);
         Long tiendaId = usuario.getTienda() == null ? null : usuario.getTienda().getId();
         auditoria.registrar(usuario.getId(), tiendaId, "Inicio de sesión", null, "");
-        return new UsuarioActual(
+        return new UsuarioActualPrincipal(
                 usuario.getId(),
                 usuario.getUsername(),
                 usuario.getNombre(),
@@ -119,14 +120,15 @@ public class AccesoService {
     }
 
     @Transactional
-    public void logout(UsuarioActual usuario) {
+    public void logout(UsuarioActualPrincipal usuario) {
         auditoria.registrar(usuario.id(), usuario.tiendaId(), "Cierre de sesión", null, "");
         sesiones.deleteById(usuario.sessionToken());
     }
 
     @Transactional
-    public void cambiarContrasena(UsuarioActual usuarioActual, ContrasenaEntradaDTO solicitud) {
-        Usuario usuario = usuarios.findById(usuarioActual.id()).orElseThrow();
+    public void cambiarContrasena(
+            UsuarioActualPrincipal usuarioActual, ContrasenaEntradaDTO solicitud) {
+        UsuarioEntity usuario = usuarios.findById(usuarioActual.id()).orElseThrow();
         if (!contrasenas.verificar(solicitud.currentPassword(), usuario.getPassword()))
             throw new ReglaNegocioException("La contraseña actual no coincide.");
         usuario.setPassword(contrasenas.generarHash(solicitud.password()));

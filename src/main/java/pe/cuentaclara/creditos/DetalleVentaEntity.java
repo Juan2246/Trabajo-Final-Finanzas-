@@ -2,14 +2,14 @@ package pe.cuentaclara.creditos;
 
 import jakarta.persistence.*;
 
-import pe.cuentaclara.catalogo.Producto;
+import pe.cuentaclara.catalogo.ProductoEntity;
 
 import java.math.BigDecimal;
 
 /** Precio y nombre vendidos, independientes del catálogo actual. */
 @Entity
 @Table(name = "sale_items")
-public class DetalleVenta {
+public class DetalleVentaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -17,11 +17,11 @@ public class DetalleVenta {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sale_id")
-    private VentaCredito venta;
+    private VentaCreditoEntity venta;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
-    private Producto producto;
+    private ProductoEntity producto;
 
     @Column(name = "name")
     private String nombre;
@@ -43,19 +43,19 @@ public class DetalleVenta {
         this.id = id;
     }
 
-    public VentaCredito getVenta() {
+    public VentaCreditoEntity getVenta() {
         return venta;
     }
 
-    public void setVenta(VentaCredito venta) {
+    public void setVenta(VentaCreditoEntity venta) {
         this.venta = venta;
     }
 
-    public Producto getProducto() {
+    public ProductoEntity getProducto() {
         return producto;
     }
 
-    public void setProducto(Producto producto) {
+    public void setProducto(ProductoEntity producto) {
         this.producto = producto;
     }
 

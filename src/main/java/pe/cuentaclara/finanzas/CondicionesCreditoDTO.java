@@ -2,12 +2,12 @@ package pe.cuentaclara.finanzas;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import pe.cuentaclara.clientes.Cliente;
+import pe.cuentaclara.clientes.ClienteEntity;
 
 import java.math.BigDecimal;
 
 /** Tasas y calendario que quedan guardados con cada compra. */
-public record CondicionesCredito(
+public record CondicionesCreditoDTO(
         @JsonProperty("rate") BigDecimal tasa,
         @JsonProperty("rate_kind") String tipoTasa,
         @JsonProperty("rate_period") int periodoTasa,
@@ -20,8 +20,8 @@ public record CondicionesCredito(
         @JsonProperty("cutoff_day") int diaCorte,
         @JsonProperty("cutoff_hour") int horaCorte,
         @JsonProperty("pay_day") int diaPago) {
-    public static CondicionesCredito desde(Cliente cliente) {
-        return new CondicionesCredito(
+    public static CondicionesCreditoDTO desde(ClienteEntity cliente) {
+        return new CondicionesCreditoDTO(
                 cliente.getTasa(),
                 cliente.getTipoTasa(),
                 cliente.getPeriodoTasa(),

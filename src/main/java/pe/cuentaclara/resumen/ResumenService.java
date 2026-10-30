@@ -3,11 +3,11 @@ package pe.cuentaclara.resumen;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import pe.cuentaclara.acceso.UsuarioActual;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
 import pe.cuentaclara.auditoria.*;
 import pe.cuentaclara.catalogo.*;
 import pe.cuentaclara.clientes.*;
-import pe.cuentaclara.comun.RelojNegocio;
+import pe.cuentaclara.comun.RelojNegocioComponent;
 import pe.cuentaclara.creditos.*;
 import pe.cuentaclara.pagos.*;
 import pe.cuentaclara.tiendas.*;
@@ -24,7 +24,7 @@ public class ResumenService {
     private final MovimientoRepository auditoria;
     private final ConsultaCreditoService creditos;
     private final SaldoCreditoService saldos;
-    private final RelojNegocio reloj;
+    private final RelojNegocioComponent reloj;
 
     public ResumenService(
             AccesoTiendaService acceso,
@@ -35,7 +35,7 @@ public class ResumenService {
             MovimientoRepository auditoria,
             ConsultaCreditoService creditos,
             SaldoCreditoService saldos,
-            RelojNegocio reloj) {
+            RelojNegocioComponent reloj) {
         this.acceso = acceso;
         this.tiendas = tiendas;
         this.clientes = clientes;
@@ -48,8 +48,9 @@ public class ResumenService {
     }
 
     @Transactional(readOnly = true)
-    public ResumenSalidaDTO obtenerResumen(UsuarioActual usuarioActual, Long tiendaSeleccionada) {
-        Tienda tienda = acceso.resolverTienda(usuarioActual, tiendaSeleccionada, false);
+    public ResumenSalidaDTO obtenerResumen(
+            UsuarioActualPrincipal usuarioActual, Long tiendaSeleccionada) {
+        TiendaEntity tienda = acceso.resolverTienda(usuarioActual, tiendaSeleccionada, false);
         List<TiendaSalidaDTO> tiendasDisponibles =
                 usuarioActual.esPlataforma()
                         ? tiendas.findAllByOrderByNombreAsc().stream()

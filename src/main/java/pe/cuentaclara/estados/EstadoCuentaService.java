@@ -6,15 +6,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import pe.cuentaclara.acceso.UsuarioActual;
-import pe.cuentaclara.clientes.Cliente;
+import pe.cuentaclara.acceso.UsuarioActualPrincipal;
+import pe.cuentaclara.clientes.ClienteEntity;
 import pe.cuentaclara.clientes.ClienteRepository;
 import pe.cuentaclara.clientes.ClienteSalidaDTO;
 import pe.cuentaclara.comun.ReglaNegocioException;
-import pe.cuentaclara.comun.RelojNegocio;
-import pe.cuentaclara.comun.SoporteJson;
+import pe.cuentaclara.comun.RelojNegocioComponent;
+import pe.cuentaclara.comun.SoporteJsonComponent;
 import pe.cuentaclara.creditos.*;
-import pe.cuentaclara.finanzas.MotorFinanciero;
+import pe.cuentaclara.finanzas.MotorFinancieroService;
 import pe.cuentaclara.tiendas.AccesoTiendaService;
 import pe.cuentaclara.tiendas.TiendaSalidaDTO;
 
@@ -53,9 +53,9 @@ public class EstadoCuentaService {
     private final ConsultaCreditoService consultas;
     private final SaldoCreditoService saldos;
     private final AccesoTiendaService acceso;
-    private final MotorFinanciero finanzas;
-    private final RelojNegocio reloj;
-    private final SoporteJson json;
+    private final MotorFinancieroService finanzas;
+    private final RelojNegocioComponent reloj;
+    private final SoporteJsonComponent json;
 
     public EstadoCuentaService(
             EstadoCerradoRepository estados,
@@ -64,9 +64,9 @@ public class EstadoCuentaService {
             ConsultaCreditoService consultas,
             SaldoCreditoService saldos,
             AccesoTiendaService acceso,
-            MotorFinanciero finanzas,
-            RelojNegocio reloj,
-            SoporteJson json) {
+            MotorFinancieroService finanzas,
+            RelojNegocioComponent reloj,
+            SoporteJsonComponent json) {
         this.estados = estados;
         this.clientes = clientes;
         this.ventas = ventas;
@@ -80,7 +80,7 @@ public class EstadoCuentaService {
 
     @Transactional(readOnly = true)
     public ObjectNode consultar(
-            UsuarioActual usuarioActual,
+            UsuarioActualPrincipal usuarioActual,
             Long tiendaSeleccionada,
             Long clienteSeleccionado,
             LocalDate fecha,
@@ -92,7 +92,7 @@ public class EstadoCuentaService {
                         : clienteSeleccionado;
         if (clienteId == null) throw new ReglaNegocioException("Selecciona un cliente.");
         acceso.validarCliente(usuarioActual, clienteId);
-        Cliente cliente = acceso.buscarCliente(clienteId, tienda.getId());
+        ClienteEntity cliente = acceso.buscarCliente(clienteId, tienda.getId());
         LocalDate when = fecha == null ? reloj.hoy() : fecha;
         if (when.isAfter(reloj.hoy()) || when.isBefore(reloj.hoy().minusDays(3650)))
             throw new ReglaNegocioException("La fecha de consulta no es válida.");
@@ -123,7 +123,7 @@ public class EstadoCuentaService {
         return result;
     }
 
-    public EstadoCuentaDTO generarEstado(Cliente cliente, LocalDate when) {
+    public EstadoCuentaDTO generarEstado(ClienteEntity cliente, LocalDate when) {
         Long tiendaId = cliente.getTienda().getId();
         var limit = when.equals(reloj.hoy()) ? reloj.ahora() : when.atTime(LocalTime.MAX);
         var compras =
@@ -145,7 +145,7 @@ public class EstadoCuentaService {
                         .toList();
         var pendientes = cuotas.stream().filter(cuota -> cuota.pagoId() == null).toList();
         var total =
-                MotorFinanciero.redondearImporte(
+                MotorFinancieroService.redondearImporte(
                         pendientes.stream()
                                 .map(CuotaSalidaDTO::total)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add));
@@ -160,11 +160,11 @@ public class EstadoCuentaService {
                         .filter(cuota -> !cuota.fechaVencimiento().isAfter(fechasCiclo))
                         .toList();
         var importe =
-                MotorFinanciero.redondearImporte(
+                MotorFinancieroService.redondearImporte(
                         exigibles.stream()
                                 .map(CuotaSalidaDTO::total)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add));
-        var zero = MotorFinanciero.redondearImporte(BigDecimal.ZERO);
+        var zero = MotorFinancieroService.redondearImporte(BigDecimal.ZERO);
         return new EstadoCuentaDTO(
                 ClienteSalidaDTO.desde(cliente, saldos.capitalPendiente(cliente.getId())),
                 TiendaSalidaDTO.desde(cliente.getTienda()),
@@ -186,14 +186,14 @@ public class EstadoCuentaService {
     @Transactional
     public int cerrarPendientes() {
         int creados = 0;
-        for (Cliente cliente : clientes.findAllByActivoTrueAndTiendaActivoTrue()) {
+        for (ClienteEntity cliente : clientes.findAllByActivoTrueAndTiendaActivoTrue()) {
             var historial = ventas.findAllByClienteIdOrderByCicloAsc(cliente.getId());
             if (historial.isEmpty()) continue;
             LocalDate ciclo = historial.getFirst().getCiclo();
             for (int count = 0; count < 121 && !ciclo.isAfter(reloj.hoy()); count++) {
                 if (!ciclo.atTime(cliente.getHoraCorte(), 0).isAfter(reloj.ahora())
                         && !estados.existsByClienteIdAndCiclo(cliente.getId(), ciclo)) {
-                    EstadoCerrado estado = new EstadoCerrado();
+                    EstadoCerradoEntity estado = new EstadoCerradoEntity();
                     estado.setTienda(cliente.getTienda());
                     estado.setCliente(cliente);
                     estado.setCiclo(ciclo);

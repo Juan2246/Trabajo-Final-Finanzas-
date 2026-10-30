@@ -2,8 +2,8 @@ package pe.cuentaclara.estados;
 
 import jakarta.persistence.*;
 
-import pe.cuentaclara.clientes.Cliente;
-import pe.cuentaclara.tiendas.Tienda;
+import pe.cuentaclara.clientes.ClienteEntity;
+import pe.cuentaclara.tiendas.TiendaEntity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 /** Fotografía inmutable del estado al corte. */
 @Entity
 @Table(name = "statements")
-public class EstadoCerrado {
+public class EstadoCerradoEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -19,11 +19,11 @@ public class EstadoCerrado {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id")
-    private Tienda tienda;
+    private TiendaEntity tienda;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
-    private Cliente cliente;
+    private ClienteEntity cliente;
 
     @Column(name = "cycle")
     private LocalDate ciclo;
@@ -42,19 +42,19 @@ public class EstadoCerrado {
         this.id = id;
     }
 
-    public Tienda getTienda() {
+    public TiendaEntity getTienda() {
         return tienda;
     }
 
-    public void setTienda(Tienda tienda) {
+    public void setTienda(TiendaEntity tienda) {
         this.tienda = tienda;
     }
 
-    public Cliente getCliente() {
+    public ClienteEntity getCliente() {
         return cliente;
     }
 
-    public void setCliente(Cliente cliente) {
+    public void setCliente(ClienteEntity cliente) {
         this.cliente = cliente;
     }
 

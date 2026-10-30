@@ -11,7 +11,7 @@ public record UsuarioSalidaDTO(
         String role,
         @JsonProperty("store_id") Long tiendaId,
         @JsonProperty("customer_id") Long clienteId) {
-    public static UsuarioSalidaDTO desde(Usuario row) {
+    public static UsuarioSalidaDTO desde(UsuarioEntity row) {
         return new UsuarioSalidaDTO(
                 row.getId(),
                 row.getUsername(),

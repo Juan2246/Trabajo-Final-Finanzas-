@@ -2,7 +2,7 @@ package pe.cuentaclara.creditos;
 
 import org.springframework.stereotype.Service;
 
-import pe.cuentaclara.finanzas.MotorFinanciero;
+import pe.cuentaclara.finanzas.MotorFinancieroService;
 
 import java.math.BigDecimal;
 
@@ -15,9 +15,9 @@ public class SaldoCreditoService {
     }
 
     public BigDecimal capitalPendiente(Long clienteId) {
-        return MotorFinanciero.redondearImporte(
+        return MotorFinancieroService.redondearImporte(
                 cuotas.findAllByVentaClienteIdAndPagoIsNull(clienteId).stream()
-                        .map(Cuota::getCapital)
+                        .map(CuotaEntity::getCapital)
                         .reduce(BigDecimal.ZERO, BigDecimal::add));
     }
 }

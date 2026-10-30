@@ -9,11 +9,11 @@ import jakarta.validation.Validator;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SoporteJson {
+public class SoporteJsonComponent {
     private final ObjectMapper mapper;
     private final Validator validator;
 
-    public SoporteJson(ObjectMapper mapper, Validator validator) {
+    public SoporteJsonComponent(ObjectMapper mapper, Validator validator) {
         this.mapper = mapper;
         this.validator = validator;
     }

@@ -15,7 +15,7 @@ public record MovimientoSalidaDTO(
         @JsonProperty("detail") String detalle,
         @JsonProperty("created_at") LocalDateTime fechaCreacion,
         @JsonProperty("user_name") String nombreUsuario) {
-    public static MovimientoSalidaDTO desde(Movimiento row) {
+    public static MovimientoSalidaDTO desde(MovimientoEntity row) {
         return new MovimientoSalidaDTO(
                 row.getId(),
                 row.getUsuario() == null ? null : row.getUsuario().getId(),

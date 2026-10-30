@@ -7,10 +7,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Component
-public class RelojNegocio {
+public class RelojNegocioComponent {
     private final Clock clock;
 
-    public RelojNegocio(Clock clock) {
+    public RelojNegocioComponent(Clock clock) {
         this.clock = clock;
     }
 

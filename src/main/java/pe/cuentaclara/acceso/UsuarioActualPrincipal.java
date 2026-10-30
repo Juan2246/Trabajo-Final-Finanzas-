@@ -3,7 +3,7 @@ package pe.cuentaclara.acceso;
 import java.security.Principal;
 
 /** Datos mínimos de la sesión; las entidades nunca salen del servicio de acceso. */
-public record UsuarioActual(
+public record UsuarioActualPrincipal(
         Long id,
         String username,
         String nombre,

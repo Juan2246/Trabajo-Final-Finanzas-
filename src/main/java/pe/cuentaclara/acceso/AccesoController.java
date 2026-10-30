@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import pe.cuentaclara.comun.RelojNegocio;
+import pe.cuentaclara.comun.RelojNegocioComponent;
 import pe.cuentaclara.config.AppProperties;
 
 import java.time.Duration;
@@ -20,9 +20,10 @@ import java.util.Map;
 public class AccesoController {
     private final AccesoService acceso;
     private final AppProperties properties;
-    private final RelojNegocio reloj;
+    private final RelojNegocioComponent reloj;
 
-    public AccesoController(AccesoService acceso, AppProperties properties, RelojNegocio reloj) {
+    public AccesoController(
+            AccesoService acceso, AppProperties properties, RelojNegocioComponent reloj) {
         this.acceso = acceso;
         this.properties = properties;
         this.reloj = reloj;
@@ -41,7 +42,7 @@ public class AccesoController {
     @PostMapping(value = "/login", consumes = "application/json")
     public ResponseEntity<?> login(
             @Valid @RequestBody AccesoEntradaDTO body, HttpServletRequest solicitud) {
-        UsuarioActual usuario = acceso.login(body, solicitud.getRemoteAddr());
+        UsuarioActualPrincipal usuario = acceso.login(body, solicitud.getRemoteAddr());
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie(usuario.sessionToken(), Duration.ofHours(8)))
                 .body(
@@ -55,13 +56,14 @@ public class AccesoController {
     }
 
     @GetMapping("/me")
-    public Map<String, Object> sesionActual(@AuthenticationPrincipal UsuarioActual usuario) {
+    public Map<String, Object> sesionActual(
+            @AuthenticationPrincipal UsuarioActualPrincipal usuario) {
         return Map.of(
                 "user", usuario.datosPublicos(), "csrf", usuario.csrf(), "today", reloj.hoy());
     }
 
     @PostMapping(value = "/logout", consumes = "application/json")
-    public ResponseEntity<?> logout(@AuthenticationPrincipal UsuarioActual usuario) {
+    public ResponseEntity<?> logout(@AuthenticationPrincipal UsuarioActualPrincipal usuario) {
         acceso.logout(usuario);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie("", Duration.ZERO))
@@ -70,7 +72,7 @@ public class AccesoController {
 
     @PostMapping(value = "/password", consumes = "application/json")
     public Map<String, Boolean> password(
-            @AuthenticationPrincipal UsuarioActual usuario,
+            @AuthenticationPrincipal UsuarioActualPrincipal usuario,
             @Valid @RequestBody ContrasenaEntradaDTO body) {
         acceso.cambiarContrasena(usuario, body);
         return Map.of("ok", true);

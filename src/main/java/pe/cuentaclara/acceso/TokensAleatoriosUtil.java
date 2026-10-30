@@ -3,10 +3,10 @@ package pe.cuentaclara.acceso;
 import java.security.SecureRandom;
 import java.util.Base64;
 
-public final class TokensAleatorios {
+public final class TokensAleatoriosUtil {
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private TokensAleatorios() {}
+    private TokensAleatoriosUtil() {}
 
     public static String token(int bytes) {
         byte[] value = new byte[bytes];

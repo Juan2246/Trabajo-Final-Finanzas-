@@ -12,7 +12,7 @@ import org.springframework.security.web.csrf.DefaultCsrfToken;
 public class SesionCsrfTokenRepository implements CsrfTokenRepository {
     @Override
     public CsrfToken generateToken(HttpServletRequest solicitud) {
-        return new DefaultCsrfToken("X-CSRF-Token", "_csrf", TokensAleatorios.token(32));
+        return new DefaultCsrfToken("X-CSRF-Token", "_csrf", TokensAleatoriosUtil.token(32));
     }
 
     @Override
@@ -25,7 +25,7 @@ public class SesionCsrfTokenRepository implements CsrfTokenRepository {
     public CsrfToken loadToken(HttpServletRequest solicitud) {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null
-                && authentication.getPrincipal() instanceof UsuarioActual usuario)
+                && authentication.getPrincipal() instanceof UsuarioActualPrincipal usuario)
             return new DefaultCsrfToken("X-CSRF-Token", "_csrf", usuario.csrf());
         return null;
     }

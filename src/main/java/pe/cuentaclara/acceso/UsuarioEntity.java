@@ -2,13 +2,13 @@ package pe.cuentaclara.acceso;
 
 import jakarta.persistence.*;
 
-import pe.cuentaclara.clientes.Cliente;
-import pe.cuentaclara.tiendas.Tienda;
+import pe.cuentaclara.clientes.ClienteEntity;
+import pe.cuentaclara.tiendas.TiendaEntity;
 
 /** Acceso personal y perfil autorizado. */
 @Entity
 @Table(name = "users")
-public class Usuario {
+public class UsuarioEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -28,11 +28,11 @@ public class Usuario {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id")
-    private Tienda tienda;
+    private TiendaEntity tienda;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
-    private Cliente cliente;
+    private ClienteEntity cliente;
 
     @Column(name = "active")
     private Boolean activo = true;
@@ -77,19 +77,19 @@ public class Usuario {
         this.role = role;
     }
 
-    public Tienda getTienda() {
+    public TiendaEntity getTienda() {
         return tienda;
     }
 
-    public void setTienda(Tienda tienda) {
+    public void setTienda(TiendaEntity tienda) {
         this.tienda = tienda;
     }
 
-    public Cliente getCliente() {
+    public ClienteEntity getCliente() {
         return cliente;
     }
 
-    public void setCliente(Cliente cliente) {
+    public void setCliente(ClienteEntity cliente) {
         this.cliente = cliente;
     }
 

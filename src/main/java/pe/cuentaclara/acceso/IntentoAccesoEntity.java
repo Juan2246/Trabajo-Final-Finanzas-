@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 /** Intentos fallidos por cuenta y dirección de origen. */
 @Entity
 @Table(name = "login_attempts")
-public class IntentoAcceso {
+public class IntentoAccesoEntity {
     @Id
     @Column(name = "key")
     private String key;

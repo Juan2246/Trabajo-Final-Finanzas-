@@ -17,7 +17,7 @@ public record PagoSalidaDTO(
         @JsonProperty("amount") BigDecimal importe,
         @JsonProperty("currency") String moneda,
         @JsonProperty("customer_name") String nombreCliente) {
-    public static PagoSalidaDTO desde(Pago row) {
+    public static PagoSalidaDTO desde(PagoEntity row) {
         return new PagoSalidaDTO(
                 row.getId(),
                 row.getTienda() == null ? null : row.getTienda().getId(),

@@ -10,7 +10,7 @@ public record TiendaSalidaDTO(
         @JsonProperty("business") String rubro,
         @JsonProperty("address") String direccion,
         @JsonProperty("active") Boolean activo) {
-    public static TiendaSalidaDTO desde(Tienda row) {
+    public static TiendaSalidaDTO desde(TiendaEntity row) {
         return new TiendaSalidaDTO(
                 row.getId(), row.getNombre(), row.getRubro(), row.getDireccion(), row.getActivo());
     }

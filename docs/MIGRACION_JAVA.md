@@ -21,7 +21,7 @@ Los DTOs pueden añadir campos financieros explicativos. Las compras del estado 
 
 ## Validación de la migración
 
-`MotorFinancieroTest` contrasta 180 planes completos con resultados de referencia de la versión anterior; además comprueba casos de mora y calendario. `ContrasenaServiceTest` y `ApiIntegrationTest` prueban la compatibilidad y actualización de claves. La integración utiliza SQLite real con archivos temporales, incluyendo concurrencia, transacciones y cierres.
+`MotorFinancieroServiceTest` contrasta 180 planes completos con resultados de referencia de la versión anterior; además comprueba casos de mora y calendario. `ContrasenaServiceTest` y `ApiIntegrationTest` prueban la compatibilidad y actualización de claves. La integración utiliza SQLite real con archivos temporales, incluyendo concurrencia, transacciones y cierres.
 
 ## Si necesitas volver
 

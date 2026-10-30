@@ -33,7 +33,7 @@ public record ClienteSalidaDTO(
         @JsonProperty("active") Boolean activo,
         @JsonProperty("outstanding") BigDecimal capitalPendiente,
         @JsonProperty("available") BigDecimal disponible) {
-    public static ClienteSalidaDTO desde(Cliente row, BigDecimal capitalPendiente) {
+    public static ClienteSalidaDTO desde(ClienteEntity row, BigDecimal capitalPendiente) {
         return new ClienteSalidaDTO(
                 row.getId(),
                 row.getTienda() == null ? null : row.getTienda().getId(),

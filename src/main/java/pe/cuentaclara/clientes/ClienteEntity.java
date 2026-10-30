@@ -2,7 +2,7 @@ package pe.cuentaclara.clientes;
 
 import jakarta.persistence.*;
 
-import pe.cuentaclara.tiendas.Tienda;
+import pe.cuentaclara.tiendas.TiendaEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 /** Cliente y condiciones para sus próximas compras. */
 @Entity
 @Table(name = "customers")
-public class Cliente {
+public class ClienteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -18,7 +18,7 @@ public class Cliente {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id")
-    private Tienda tienda;
+    private TiendaEntity tienda;
 
     @Column(name = "name")
     private String nombre;
@@ -91,11 +91,11 @@ public class Cliente {
         this.id = id;
     }
 
-    public Tienda getTienda() {
+    public TiendaEntity getTienda() {
         return tienda;
     }
 
-    public void setTienda(Tienda tienda) {
+    public void setTienda(TiendaEntity tienda) {
         this.tienda = tienda;
     }
 

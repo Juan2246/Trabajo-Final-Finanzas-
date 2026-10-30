@@ -2,7 +2,7 @@ package pe.cuentaclara.creditos;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import pe.cuentaclara.finanzas.CondicionesCredito;
+import pe.cuentaclara.finanzas.CondicionesCreditoDTO;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,5 +24,5 @@ public record VentaSalidaDTO(
         @JsonProperty("currency") String moneda,
         @JsonProperty("cycle") LocalDate ciclo,
         @JsonProperty("created_at") LocalDateTime fechaCreacion,
-        @JsonProperty("terms") CondicionesCredito condiciones,
+        @JsonProperty("terms") CondicionesCreditoDTO condiciones,
         @JsonProperty("items") List<DetalleVentaSalidaDTO> detalles) {}

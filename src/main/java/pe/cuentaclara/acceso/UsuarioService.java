@@ -2,9 +2,9 @@ package pe.cuentaclara.acceso;
 
 import org.springframework.stereotype.Service;
 
-import pe.cuentaclara.clientes.Cliente;
+import pe.cuentaclara.clientes.ClienteEntity;
 import pe.cuentaclara.comun.ReglaNegocioException;
-import pe.cuentaclara.tiendas.Tienda;
+import pe.cuentaclara.tiendas.TiendaEntity;
 
 @Service
 public class UsuarioService {
@@ -19,20 +19,20 @@ public class UsuarioService {
         this.contrasenas = contrasenas;
     }
 
-    public Usuario crear(
+    public UsuarioEntity crear(
             String username,
             String nombre,
             String password,
             String role,
-            Tienda tienda,
-            Cliente cliente) {
+            TiendaEntity tienda,
+            ClienteEntity cliente) {
         if (username == null || !username.matches("[A-Za-z0-9_.@-]{3,80}"))
             throw new ReglaNegocioException("Usuario: 3–80 letras, números, puntos, @ o guiones.");
         if (nombre == null || nombre.isBlank() || nombre.length() > 120)
             throw new ReglaNegocioException("Revisa el nombre del usuario.");
         if (usuarios.findByUsernameIgnoreCase(username).isPresent())
             throw new ReglaNegocioException("El usuario ya existe.", 409);
-        Usuario usuario = new Usuario();
+        UsuarioEntity usuario = new UsuarioEntity();
         usuario.setUsername(username);
         usuario.setNombre(nombre.strip());
         usuario.setPassword(contrasenas.generarHash(password));
@@ -43,8 +43,8 @@ public class UsuarioService {
         return usuarios.saveAndFlush(usuario);
     }
 
-    public void actualizarCliente(Cliente cliente, String nuevaContrasena) {
-        for (Usuario usuario : usuarios.findByClienteId(cliente.getId())) {
+    public void actualizarCliente(ClienteEntity cliente, String nuevaContrasena) {
+        for (UsuarioEntity usuario : usuarios.findByClienteId(cliente.getId())) {
             usuario.setNombre(cliente.getNombre());
             usuario.setActivo(cliente.getActivo());
             if (!Boolean.TRUE.equals(cliente.getActivo())

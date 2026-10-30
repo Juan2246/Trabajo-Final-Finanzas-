@@ -20,7 +20,7 @@ public record ProductoSalidaDTO(
         @JsonProperty("currency") String moneda,
         @JsonProperty("installment_allowed") Boolean permiteCuotas,
         @JsonProperty("active") Boolean activo) {
-    public static ProductoSalidaDTO desde(Producto row) {
+    public static ProductoSalidaDTO desde(ProductoEntity row) {
         return new ProductoSalidaDTO(
                 row.getId(),
                 row.getTienda() == null ? null : row.getTienda().getId(),

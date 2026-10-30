@@ -2,7 +2,7 @@ package pe.cuentaclara.creditos;
 
 import jakarta.persistence.*;
 
-import pe.cuentaclara.pagos.Pago;
+import pe.cuentaclara.pagos.PagoEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -10,7 +10,7 @@ import java.time.LocalDate;
 /** Obligación de pago y recibo que la cancela. */
 @Entity
 @Table(name = "dues")
-public class Cuota {
+public class CuotaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -18,7 +18,7 @@ public class Cuota {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sale_id")
-    private VentaCredito venta;
+    private VentaCreditoEntity venta;
 
     @Column(name = "number")
     private Integer numero;
@@ -37,7 +37,7 @@ public class Cuota {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_id")
-    private Pago pago;
+    private PagoEntity pago;
 
     public Long getId() {
         return id;
@@ -47,11 +47,11 @@ public class Cuota {
         this.id = id;
     }
 
-    public VentaCredito getVenta() {
+    public VentaCreditoEntity getVenta() {
         return venta;
     }
 
-    public void setVenta(VentaCredito venta) {
+    public void setVenta(VentaCreditoEntity venta) {
         this.venta = venta;
     }
 
@@ -95,11 +95,11 @@ public class Cuota {
         this.importe = importe;
     }
 
-    public Pago getPago() {
+    public PagoEntity getPago() {
         return pago;
     }
 
-    public void setPago(Pago pago) {
+    public void setPago(PagoEntity pago) {
         this.pago = pago;
     }
 }

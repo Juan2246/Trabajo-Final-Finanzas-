@@ -2,14 +2,14 @@ package pe.cuentaclara.catalogo;
 
 import jakarta.persistence.*;
 
-import pe.cuentaclara.tiendas.Tienda;
+import pe.cuentaclara.tiendas.TiendaEntity;
 
 import java.math.BigDecimal;
 
 /** Producto o servicio con precios y modalidad permitida. */
 @Entity
 @Table(name = "products")
-public class Producto {
+public class ProductoEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -17,7 +17,7 @@ public class Producto {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id")
-    private Tienda tienda;
+    private TiendaEntity tienda;
 
     @Column(name = "name")
     private String nombre;
@@ -60,11 +60,11 @@ public class Producto {
         this.id = id;
     }
 
-    public Tienda getTienda() {
+    public TiendaEntity getTienda() {
         return tienda;
     }
 
-    public void setTienda(Tienda tienda) {
+    public void setTienda(TiendaEntity tienda) {
         this.tienda = tienda;
     }
 

@@ -14,7 +14,7 @@ public record DetalleVentaSalidaDTO(
         @JsonProperty("quantity") BigDecimal cantidad,
         @JsonProperty("unit_price") BigDecimal precioUnitario,
         BigDecimal subtotal) {
-    public static DetalleVentaSalidaDTO desde(DetalleVenta row) {
+    public static DetalleVentaSalidaDTO desde(DetalleVentaEntity row) {
         return new DetalleVentaSalidaDTO(
                 row.getId(),
                 row.getVenta() == null ? null : row.getVenta().getId(),
