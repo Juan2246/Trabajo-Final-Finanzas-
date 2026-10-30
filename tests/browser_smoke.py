@@ -100,8 +100,11 @@ def business_flows(page, context, url):
     assert record["image"] == "/catalogo/producto.jpg"
     for active in (False, True):
         page.locator('[data-action="toggle-product"][data-id="' + str(product_id) + '"]').click()
+        expect(page.locator('#modal-title')).to_have_text('¿Activar este registro?' if active else '¿Desactivar este registro?')
         mutate_with_ui(page, "/api/products/" + str(product_id),
             lambda: page.locator('[data-action="save-toggle"]').click(), method="PATCH")
+        expect(page.locator('#modal')).not_to_be_visible()
+        expect(page.locator('[data-action="toggle-product"][data-id="' + str(product_id) + '"]')).to_have_text('Desactivar' if active else 'Activar')
         record = next(p for p in api_data(context, url)["products"] if p["id"] == product_id)
         assert bool(record["active"]) == active
 

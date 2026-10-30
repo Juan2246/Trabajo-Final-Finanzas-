@@ -316,9 +316,13 @@ document.addEventListener("change", async (event) => {
 });
 document.getElementById("modal").addEventListener("close", () => {
   const dialogo = document.getElementById("modal");
+  const devolverFoco =
+    dialogo.dataset.seguridad || document.activeElement?.matches("body, .skip");
   if (dialogo.dataset.seguridad) {
     dialogo.innerHTML = "";
     delete dialogo.dataset.seguridad;
+  }
+  if (devolverFoco) {
     const titulo = document.getElementById("page-title");
     if (titulo) {
       titulo.setAttribute("tabindex", "-1");

@@ -15,6 +15,12 @@ client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.coo
 csrf = ""
 
 
+def codigo_autenticador(secret, adelanto=0):
+    digest = hmac.new(base64.b32decode(secret), struct.pack('>Q', (int(time.time()) + adelanto) // 30), hashlib.sha1).digest()
+    offset = digest[-1] & 15
+    return str((struct.unpack('>I', digest[offset:offset + 4])[0] & 0x7fffffff) % 1000000).zfill(6)
+
+
 def request(path, body=None):
     data = None if body is None else json.dumps(body).encode()
     req = urllib.request.Request(url + path, data, headers={"Content-Type": "application/json", "X-CSRF-Token": csrf})
@@ -42,9 +48,7 @@ login = request("/api/login", {
 assert login["user"]["role"] == "platform"
 csrf = login["csrf"]
 setup = request('/api/security/mfa/setup', {'password': 'PruebaSegura2026'})
-digest = hmac.new(base64.b32decode(setup['secret']), struct.pack('>Q', int(time.time()) // 30), hashlib.sha1).digest()
-offset = digest[-1] & 15
-otp = str((struct.unpack('>I', digest[offset:offset + 4])[0] & 0x7fffffff) % 1000000).zfill(6)
+otp = codigo_autenticador(setup['secret'])
 codes = request('/api/security/mfa/confirm', {'codigo': otp})['recovery_codes']
 subprocess.run(["docker", "restart", "cuenta-clara-ci"], check=True)
 ready()
@@ -56,6 +60,14 @@ challenge = request('/api/challenge')
 step = request('/api/login', {'username': 'admin', 'password': 'PruebaSegura2026',
     'challenge_id': challenge['id'], 'answer': str(sum(map(int, re.findall(r'\d+', challenge['question']))))})
 assert step['mfa_required']
+verified = request('/api/login/mfa', {'token': step['mfa_token'], 'codigo': codigo_autenticador(setup['secret'], 30)})
+assert verified['user']['id'] == login['user']['id']
+csrf = verified['csrf']
+request('/api/logout', {})
+csrf = ""
+challenge = request('/api/challenge')
+step = request('/api/login', {'username': 'admin', 'password': 'PruebaSegura2026',
+    'challenge_id': challenge['id'], 'answer': str(sum(map(int, re.findall(r'\d+', challenge['question']))))})
 verified = request('/api/login/mfa', {'token': step['mfa_token'], 'codigo': codes[0]})
 assert verified['user']['id'] == login['user']['id']
 assert request('/api/security/mfa')['recovery_remaining'] == 7

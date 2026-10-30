@@ -1923,9 +1923,9 @@ async function submitForm(form) {
           body: JSON.stringify(formObject(form)),
         },
       );
-      $("#modal").close();
       state.editId = null;
       await refresh();
+      $("#modal").close();
       toast("Listo, los datos quedaron guardados.");
       return;
     }
@@ -2277,7 +2277,6 @@ async function runAction(button) {
         method: "PATCH",
         body: JSON.stringify({ active: t.active }),
       });
-      $("#modal").close();
       if (
         t.resource === "stores" &&
         !t.active &&
@@ -2285,6 +2284,7 @@ async function runAction(button) {
       )
         state.storeId = "";
       await refresh();
+      $("#modal").close();
       toast("Estado actualizado.");
       return;
     }
